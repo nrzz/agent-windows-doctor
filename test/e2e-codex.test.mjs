@@ -251,3 +251,18 @@ test("the Windows sandbox that Codex selects: nothing set selects none and lower
   }
   t.diagnostic(`on Codex CLI ${NUMBER}: ${seen.join(" | ")}`);
 });
+
+test("codex doctor reports the install, the security software and the reachability of the provider, and names no shell", { skip: SKIP, timeout: 300000 }, async (t) => {
+  const sb = codex.sandbox("doctor");
+  const api = await codex.fake([]);
+  try {
+    codex.writeConfig(sb, api, {});
+    const r = await launch(sb, codex.BIN, ["doctor"], { env: codex.env(sb, api), cwd: sb.work, timeout: 200000 });
+    const text = `${r.out}\n${r.err}`;
+    assert.ok([0, 1].includes(r.code), text.slice(0, 400));
+    assert.match(text, /Codex Doctor v\d+\.\d+\.\d+/);
+    assert.match(text, /\binstall\b/);
+    assert.doesNotMatch(r.out, /\b(shell|powershell|pwsh|bash)\b/i, "codex doctor names no shell");
+    t.diagnostic(`codex doctor ${NUMBER}: exit ${r.code}, ${r.out.split("\n").length} lines, no line names a shell`);
+  } finally { await api.close(); }
+});

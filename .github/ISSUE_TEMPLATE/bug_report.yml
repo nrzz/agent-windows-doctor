@@ -1,0 +1,70 @@
+name: Bug report
+description: Something in agent-windows-doctor does not work as described
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Please remove secrets, tokens and private paths from anything you paste. The tool prints an environment value only when its name or its value says it is a path or a switch, but a path can still name your user.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what happened instead. For a wrong prediction of a shell (the shell an agent gives the model, or the one that runs a hook), say which shell the agent really started, and how you know.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Install ... with ...
+        2. Run agent-windows-doctor check ...
+        3. See ...
+    validations:
+      required: true
+  - type: dropdown
+    id: agent
+    attributes:
+      label: Which agent is it about?
+      options:
+        - Claude Code
+        - Codex CLI
+        - Gemini CLI
+        - GitHub Copilot CLI
+        - Cursor
+        - More than one, or none
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version of that agent
+      description: The output of `claude --version`, `codex --version`, `gemini --version`, `copilot --version`, or Cursor's.
+      placeholder: codex-cli 0.163.0
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: Windows, Node, PowerShell and Git versions
+      description: The Windows version from `winver`, `node --version`, `$PSVersionTable.PSVersion`, and `git --version`.
+      placeholder: "Windows 11 24H2 (x64), Node 22.11, Windows PowerShell 5.1, Git 2.51.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How did you run agent-windows-doctor?
+      options:
+        - npx from GitHub
+        - git clone
+        - The toolkit setup page (npx -y github:nrzz/claude-code-toolkit)
+        - Other
+  - type: textarea
+    id: output
+    attributes:
+      label: Output or logs
+      description: The exact output of the command, with secrets removed. For a wrong prediction, `agent-windows-doctor check --json` and, if you can run it, `agent-windows-doctor check --live`.
+      render: text

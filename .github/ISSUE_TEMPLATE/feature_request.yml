@@ -1,0 +1,60 @@
+name: Feature request
+description: An idea for agent-windows-doctor
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you trying to do with a coding agent on Windows (or in WSL), and what gets in the way? A link to the issue of the agent helps.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: The idea
+      description: How should it work? What should `check` say, or what should a command do?
+    validations:
+      required: true
+  - type: dropdown
+    id: agent
+    attributes:
+      label: Which agent is it for?
+      options:
+        - Claude Code
+        - Codex CLI
+        - Gemini CLI
+        - GitHub Copilot CLI
+        - Cursor
+        - Another agent
+        - All of them
+    validations:
+      required: true
+  - type: dropdown
+    id: tokens
+    attributes:
+      label: Token cost
+      description: Would it put anything new in front of a model? Every user pays for that.
+      options:
+        - "No: it runs outside every agent"
+        - "Only when the user asks for it"
+        - "A few tokens per session"
+        - "Not sure"
+    validations:
+      required: true
+  - type: dropdown
+    id: changes
+    attributes:
+      label: Would it change anything on the computer?
+      description: Today nothing does: the tool only reads (and `check --live` writes throwaway folders that it removes).
+      options:
+        - "No: it only reads"
+        - "Yes: it would write something (say what in the idea)"
+        - "Not sure"
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered

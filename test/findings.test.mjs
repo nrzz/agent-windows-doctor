@@ -6,13 +6,14 @@ import assert from "node:assert/strict";
 import { fakeMachine } from "./machine.mjs";
 import { HOME, POLICY, PROJECT, collect as collectRaw, idsOf, npmInstall, utf16, winMachine, withNpm } from "./win-machine.mjs";
 import { collectWsl as collectWslRaw } from "../src/check.mjs";
-import { FINDING_IDS, SEVERITY_ORDER, liveFindings } from "../src/findings.mjs";
+import { FINDING_IDS, FINDING_SEVERITY, SEVERITY_ORDER, liveFindings } from "../src/findings.mjs";
 import { IDS, pageFor } from "../src/explain.mjs";
 import { CMD_TEXT, PS1_TEXT } from "./cursor-files.mjs";
 
 // every finding any machine of this file produced: the last test holds the set to FINDING_IDS
 const SEEN = new Set();
-const record = (f) => { for (const x of f.findings) SEEN.add(x.id); return f; };
+const SEVERITIES_SEEN = new Map();
+const record = (f) => { for (const x of f.findings) { SEEN.add(x.id); SEVERITIES_SEEN.set(x.id, new Set([...(SEVERITIES_SEEN.get(x.id) || []), x.severity])); } return f; };
 const collect = (...a) => record(collectRaw(...a));
 const collectWsl = (...a) => record(collectWslRaw(...a));
 const find = (facts, id) => facts.findings.find((f) => f.id === id);
@@ -539,6 +540,9 @@ test("copilot.hook-bash-only: a hook with a bash field and no powershell field, 
   const git = collect(winMachine(withNpm({ texts: { [file]: hooks }, files: ["C:\\Program Files\\Git\\usr\\bin\\bash.exe"], env: { Path: `${NPM};C:\\Program Files\\Git\\usr\\bin;C:\\Program Files\\Git\\cmd;${SYS_PATH}` } }, ["copilot"])));
   assert.equal(find(git, "copilot.hook-bash-only").severity, "note");
   assert.match(find(git, "copilot.hook-bash-only").message, /the Git Bash on PATH/);
+  // a bash-only hook of an event that does not guard a call (postToolUse) does not deny anything: a warning
+  const after = JSON.stringify({ version: 1, hooks: { postToolUse: [{ type: "command", bash: "./log.sh" }] } });
+  assert.equal(find(collect(winMachine(withNpm({ texts: { [file]: after } }, ["copilot"]))), "copilot.hook-bash-only").severity, "warning");
   // a hook with both fields is fine, and so is exec
   const fine = JSON.stringify({ version: 1, hooks: { preToolUse: [{ type: "command", bash: "./a.sh", powershell: "node a.mjs" }, { type: "command", exec: "node", args: ["a.mjs"] }] } });
   assert.ok(!idsOf(collect(winMachine(withNpm({ texts: { [file]: fine } }, ["copilot"])))).includes("copilot.hook-bash-only"));
@@ -677,4 +681,8 @@ test("every id of FINDING_IDS was emitted by some machine of this file, and noth
   assert.deepEqual(extra, [], "an id that FINDING_IDS does not list");
   assert.deepEqual(missing, [], "ids that no machine of this file emits");
   assert.equal(new Set(FINDING_IDS).size, FINDING_IDS.length, "no id twice");
+  // the severity of every finding is one the table allows, and the table allows nothing that no machine here produced
+  assert.deepEqual(Object.keys(FINDING_SEVERITY), FINDING_IDS);
+  for (const [id, seen] of SEVERITIES_SEEN) for (const s of seen) assert.ok(FINDING_SEVERITY[id].includes(s), `${id} was ${s}, the table allows ${FINDING_SEVERITY[id].join(", ")}`);
+  for (const id of FINDING_IDS.filter((x) => SEVERITIES_SEEN.has(x))) assert.deepEqual([...SEVERITIES_SEEN.get(id)].sort(), [...FINDING_SEVERITY[id]].sort(), `${id}: every severity the table lists was produced`);
 });

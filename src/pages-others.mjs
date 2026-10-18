@@ -94,6 +94,7 @@ const HOOK = {
     run: [
       'V: the command line of the process that started a hook was powershell.exe -NoProfile -NonInteractive -Command "<command>; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }" (Gemini CLI 0.64.0).',
       "V: a hook whose command was `node \"hook.mjs\" BeforeTool && echo done` did not run; Gemini CLI printed PowerShell's parser error (\"The token '&&' is not a valid statement separator in this version\") as a hook warning, and the tool ran.",
+      'V: a hook that exited with 2 and wrote to stderr blocked the tool call (the model got "Tool execution blocked: <stderr>"), because the command line ends with that exit-code check; a hook that exited with 1 did not block (Gemini CLI 0.64.0). Windows PowerShell 5.1 with -Command alone would have turned the 2 into 1 (test/windows.test.mjs).',
     ],
   },
   copilot: {

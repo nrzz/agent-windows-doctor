@@ -333,7 +333,27 @@ test("claude doctor, in a throwaway world: a native install whose folder is not 
   t.diagnostic(`claude doctor on ${NUMBER}: ${text.split("\n").filter((l) => /PATH|Feature-flag|flag/i.test(l)).map((l) => l.trim()).join(" | ")}`);
   assert.equal(r.code, 0, text);
   assert.match(text, /Feature-flag evaluation disabled \(disabled by CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC\)/);
+  // it reports the install and the settings, and says nothing of which shell the model gets
+  assert.doesNotMatch(text, /\b(shell|powershell|pwsh|bash)\b/i, "claude doctor names no shell");
   // only an install that is not from npm (the desktop app's bundle, the native installer) has a folder that doctor wants on PATH
   if (/^Running: npm/m.test(text)) assert.doesNotMatch(text, /not in your PATH/i, "an npm install has no such line");
   else assert.match(text, /Native installation exists but .* is not in your PATH/i);
+});
+
+test("the npm package of Claude Code: the inventory reads the version, the Node it asks for and the program of its bin from package.json, and the binary prints the same version", { skip: SKIP, timeout: 120000 }, async (t) => {
+  const { resolveBin } = await import("./sandbox.mjs");
+  const { findAgents } = await import("../src/inventory.mjs");
+  const { nodeWants } = await import("../src/agentfacts.mjs");
+  const shimPath = resolveBin(process.env.E2E_CLAUDE || "");
+  if (!/\.cmd$/i.test(shimPath)) { t.diagnostic(`E2E_CLAUDE (${shimPath}) is not an npm shim: its package is not read`); return; }
+  const sys = makeSys({ env: { Path: [path.dirname(shimPath), SYSTEM_PATH].join(";") }, cwd: path.dirname(shimPath), home: path.dirname(shimPath) });
+  const found = findAgents(sys, { agents: ["claude"] });
+  const shim = found.agents.claude.entries.find((e) => /claude\.cmd$/i.test(e.path));
+  assert.ok(shim && shim.package, "the shim and its package are found");
+  assert.equal(shim.package.name, "@anthropic-ai/claude-code");
+  assert.equal(shim.version, NUMBER, "the version the inventory reads from package.json is the one the binary prints");
+  assert.ok(shim.program && /claude\.exe$/i.test(shim.program) && fs.existsSync(shim.program), `the bin is a program: ${shim.program}`);
+  const wants = nodeWants(found, process.versions.node).find((x) => x.agent === "claude");
+  assert.match(wants.range, /^>=\d+/);
+  t.diagnostic(`Claude Code ${NUMBER}: engines.node ${wants.range}; the shim leads to ${shim.program}`);
 });

@@ -244,3 +244,14 @@ test("check, agents and --markdown on the real machine, in a throwaway world wit
   assert.ok(md.out.split("\n").length <= 30);
   assert.ok(md.out.split("\n").every((l) => l.length <= 500));
 });
+
+test("the exit code of a hook through Windows PowerShell: -Command turns the exit code 2 of a program into 1, and the check that Gemini CLI appends keeps it", { skip, timeout: 60000 }, () => {
+  const dir = tmpDir("adw-exit-");
+  const hook = "node -e \"process.exit(2)\"";
+  const plain = spawnSync(POWERSHELL_51, ["-NoProfile", "-NonInteractive", "-Command", hook], { encoding: "utf8", windowsHide: true, input: "", cwd: dir, env: psEnv() });
+  assert.equal(plain.status, 1, "Codex CLI runs a hook like this: its exit code 2 reaches it as 1, which is not a block");
+  const kept = spawnSync(POWERSHELL_51, ["-NoProfile", "-NonInteractive", "-Command", `${hook}; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }`], { encoding: "utf8", windowsHide: true, input: "", cwd: dir, env: psEnv() });
+  assert.equal(kept.status, 2, "Gemini CLI appends this check, and its hook that exits with 2 blocks");
+  const ok = spawnSync(POWERSHELL_51, ["-NoProfile", "-NonInteractive", "-Command", 'node -e "process.exit(0)"'], { encoding: "utf8", windowsHide: true, input: "", cwd: dir, env: psEnv() });
+  assert.equal(ok.status, 0);
+});

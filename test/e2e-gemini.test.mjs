@@ -33,18 +33,21 @@ function standIn(name = "pwsh.exe") {
   return { dir, file: path.join(dir, name) };
 }
 const hookEntry = (command) => ({ type: "command", command, timeout: 30000 });
+const CASES = { block: { stderr: "blocked-by-hook-stderr", exit: 2 }, fail: { stderr: "failed-hook", exit: 1 } };
 const HOOKS = {
   SessionStart: [{ matcher: "*", hooks: [hookEntry(`node "${HOOK}" SessionStart`)] }],
   BeforeTool: [{ matcher: "*", hooks: [hookEntry(`node "${HOOK}" BeforeTool`), hookEntry(`node "${HOOK}" ANDAND && echo done`)] }],
 };
 
-/** One headless turn in which the model asks run_shell_command for WHO. */
-async function turn(label, { pathOpts, env = {}, hooks } = {}) {
+/** One headless turn in which the model asks run_shell_command for `command` (WHO unless said). */
+async function turn(label, { pathOpts, env = {}, hooks, command = WHO } = {}) {
   const sb = gemini.sandbox(label, hooks ? { hooks } : {});
   const log = path.join(sb.base, "hook.jsonl");
-  const api = await gemini.fake([{ shell: WHO }]);
+  const cases = path.join(sb.base, "cases.json");
+  fs.writeFileSync(cases, JSON.stringify(CASES));
+  const api = await gemini.fake([{ shell: command }]);
   try {
-    const r = await gemini.run(sb, api, { env: { ADW_LOG: log, ADW_PARENT: "1", ...env }, path: pathOpts, timeout: 190000 });
+    const r = await gemini.run(sb, api, { env: { ADW_LOG: log, ADW_CASES: cases, ADW_PARENT: "1", ...env }, path: pathOpts, timeout: 190000 });
     const lines = fs.existsSync(log) ? fs.readFileSync(log, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)) : [];
     const results = api.results().map((x) => x.text).join("\n");
     const sys = makeSys({ env: { ...r.env }, cwd: sb.work, home: sb.home });
@@ -72,6 +75,9 @@ const runs = SKIP ? null : (() => {
     withPwsh: early(turn("g-pwsh", { pathOpts: { only: plainWindowsPath(), first: [ps7.dir] }, env: { __PSLockdownPolicy: "4" } })),
     // no PowerShell folder on PATH; a pwsh.exe in a ProgramFiles folder that PATH does not list
     none: early(turn("g-none", { pathOpts: { only: noPsFolder }, env: { ProgramFiles: pf, ProgramW6432: pf } })),
+    // a hook that exits with 2 (and one that exits with 1) guarding a command that prints a word
+    blocks: early(turn("g-block", { pathOpts: { only: plainWindowsPath() }, command: "echo CASE-block RAN-OK", hooks: { BeforeTool: [{ matcher: "*", hooks: [hookEntry(`node "${HOOK}" BeforeTool act`)] }] } })),
+    fails: early(turn("g-fail", { pathOpts: { only: plainWindowsPath() }, command: "echo CASE-fail RAN-OK", hooks: { BeforeTool: [{ matcher: "*", hooks: [hookEntry(`node "${HOOK}" BeforeTool act`)] }] } })),
   };
 })();
 
@@ -143,4 +149,15 @@ test("the Gemini CLI install has the native half of node-pty (@lydell/node-pty-w
   const wants = nodeWants(found, process.versions.node).find((x) => x.agent === "gemini");
   assert.equal(wants.range, pkg.engines.node);
   t.diagnostic(`Gemini CLI ${NUMBER}: ${pty.found}; engines.node ${pkg.engines.node}`);
+});
+
+test("a hook that exits with 2 blocks the tool call, because the command line Gemini CLI builds keeps the exit code; a hook that exits with 1 does not block", { skip: SKIP, timeout: 900000 }, async (t) => {
+  const block = await runs.blocks;
+  assert.equal(block.lines.filter((l) => l.label === "BeforeTool").length, 1, "the hook ran");
+  assert.doesNotMatch(block.results, /RAN-OK/, "the command did not run");
+  assert.match(block.results, /blocked-by-hook-stderr/, block.results);
+  const fail = await runs.fails;
+  assert.equal(fail.lines.filter((l) => l.label === "BeforeTool").length, 1, "the hook ran");
+  assert.match(fail.results, /RAN-OK/, `the command ran after a hook that exited with 1: ${fail.results}`);
+  t.diagnostic(`Gemini CLI ${NUMBER}: exit 2 gave: ${block.results.replace(/\s+/g, " ").slice(0, 200)}; exit 1: the command ran`);
 });

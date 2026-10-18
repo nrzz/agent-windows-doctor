@@ -512,3 +512,26 @@ export const FINDING_IDS = [
   ...GENERIC("copilot"), "copilot.node-for-npm", "copilot.powershell-not-on-path", "copilot.pwsh-missing", "copilot.hook-bash-only", "copilot.claude-hooks", ...HOOKS("copilot"),
   ...GENERIC("cursor"), "cursor.launcher-quotes", "cursor.launcher-no-version", "cursor.msystem", "cursor.hook-stdin-bom", ...HOOKS("cursor"),
 ];
+
+// The severity each id has, or the severities it can have when the case decides (a hook with a bash field is an error where the tool call is denied, a warning where it
+// is not, and a note where a Git Bash runs it). test/findings.test.mjs holds every finding that a machine of its produces to this table, and the README's table to it.
+const ERROR = ["error"];
+const WARNING = ["warning"];
+const NOTE = ["note"];
+export const FINDING_SEVERITY = Object.fromEntries(FINDING_IDS.map((id) => {
+  const name = id.slice(id.indexOf(".") + 1);
+  if (["not-on-path", "multiple", "older-first", "no-version", "hook-bash-syntax", "hook-ps1-policy", "hook-extensionless"].includes(name)) return [id, WARNING];
+  if (name === "node-for-npm") return [id, NOTE];
+  const own = {
+    "claude.no-shell-tool": ERROR, "claude.git-bash-not-found": WARNING, "claude.git-bash-path-ignored": WARNING, "claude.git-bash-path-project-settings": WARNING, "claude.git-bash-broken": WARNING,
+    "claude.powershell-variable-unread": WARNING, "claude.default-shell-scope": NOTE, "claude.powershell-5": NOTE, "claude.wsl-bash-on-path": NOTE, "claude.launcher-first": WARNING,
+    "claude.long-paths": NOTE, "claude.autocrlf": NOTE, "claude.execution-policy": WARNING, "claude.code-page": NOTE, "claude.index-lock": WARNING,
+    "claude.user-env-not-in-process": WARNING, "claude.user-env-differs": WARNING, "claude.process-env-not-in-user": NOTE,
+    "claude.wsl-no-distro": NOTE, "claude.wsl-windows-claude": WARNING, "claude.wsl-config-on-mnt": WARNING, "claude.wsl-inherits-windows": NOTE,
+    "codex.sandbox-none": WARNING, "codex.mxc-unavailable": WARNING, "codex.shell-path-ignored": WARNING, "codex.home-wsl": NOTE, "codex.hook-exit-2": NOTE, "codex.hook-trust": NOTE,
+    "gemini.powershell-not-on-path": ERROR, "gemini.constrained-language-mode": ERROR, "gemini.node-pty-missing": WARNING,
+    "copilot.powershell-not-on-path": ERROR, "copilot.pwsh-missing": NOTE, "copilot.hook-bash-only": ["error", "warning", "note"], "copilot.claude-hooks": ["warning", "note"],
+    "cursor.launcher-quotes": WARNING, "cursor.launcher-no-version": ERROR, "cursor.msystem": WARNING, "cursor.hook-stdin-bom": NOTE,
+  }[id];
+  return [id, own];
+}));
