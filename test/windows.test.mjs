@@ -238,7 +238,7 @@ test("bash syntax in a hook command: what bashReasons says a PowerShell does dif
   const same = 'node -e "process.stdout.write(\'same\')"';
   assert.deepEqual(bashReasons(same, { edition: "5.1" }), []);
   assert.equal(spawnSync(POWERSHELL_51, ["-NoProfile", "-NonInteractive", "-Command", same], { encoding: "utf8", windowsHide: true, input: "", cwd: dir, env }).stdout, "same");
-  // PowerShell 7 reads && and ||: the tool does not name them for edition 7, and a pwsh.exe on PATH (the CI runners have one) runs the line
+  // PowerShell 7 reads && and ||: the tool does not name them for edition 7, and a pwsh.exe on PATH (the windows-latest runner has one) runs the line
   const pwsh = run("where.exe", ["pwsh"]).stdout.split(/\r?\n/).map((s) => s.trim()).find((s) => s && fs.existsSync(s));
   assert.equal(bashReasons('node -e "0" && echo done', { edition: "7" }).some((x) => x.id === "and-or"), false);
   if (pwsh) {

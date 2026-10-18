@@ -5,7 +5,7 @@ name: e2e
 # inside the sandbox and every proxy is a closed port. They put to the binaries which shell each agent starts for the model and how it finds it,
 # what a hook is run with, what a failing hook does, the Windows sandbox of Codex, and `check --live`; test/windows.test.mjs cross-checks what the
 # tool reads on Windows against PowerShell, .NET, where.exe and wsl.exe. On Windows they run in full (windows-latest has Git at
-# C:\Program Files\Git and PowerShell 7 on PATH, which the machine this was written on has neither); on Linux and macOS the checks that are
+# C:\Program Files\Git and PowerShell 7 at C:\Program Files\PowerShell\7, which the machine this was written on has neither); on Linux and macOS the checks that are
 # about Windows skip and the answer "nothing to check" is put to the real command line. Optional by design: an agent that cannot be installed
 # skips its checks. Weekly, so a release of an agent that changes how it finds its shell shows up here.
 on:
