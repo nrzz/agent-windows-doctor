@@ -29,7 +29,7 @@ agent-windows-doctor says it, for Claude Code, Codex CLI, Gemini CLI, GitHub Cop
 | What | Tokens |
 | --- | --- |
 | The command line tool: `check`, `agents`, `explain`, and `check --live` (a fake API answers; no model is reached) | 0 |
-| `check --markdown`, if you paste it into an agent yourself | At most 12 findings of at most 500 characters each and a header of three lines: about 7,500 characters, under 2,000 tokens. The example below is 4,327 characters |
+| `check --markdown`, if you paste it into an agent yourself | At most 12 findings of at most 500 characters each and a header of three lines: about 7,500 characters, under 2,000 tokens. The example below is 4,326 characters |
 
 There is no plugin, no skill and no hook: nothing is put in front of a model unless you paste a report.
 
@@ -49,7 +49,7 @@ cd agent-windows-doctor
 node bin/agent-windows-doctor.mjs check --project .
 ```
 
-The command is `agent-windows-doctor` where it is installed (`npm install -g github:nrzz/agent-windows-doctor` puts it on PATH); the examples below use that name.
+The examples below call the command `agent-windows-doctor`.
 
 ## Use
 
@@ -91,7 +91,7 @@ the tests use both. It reads files, the registry and the output of a few Windows
 starts an agent's binary only with --live, in throwaway folders, and sends nothing to anyone.
 ```
 
-The examples below were run in a throwaway Windows user, shown as `C:\Users\me`: the real machine (Windows 11, no PowerShell 7, Git for Windows at `E:\Das\Git`, not on PATH), Claude Code 2.1.302 in `.local\bin`, Codex CLI, Gemini CLI and Copilot CLI installed by npm into `AppData\Roaming\npm`, the Cursor CLI launcher as an earlier install left it, and a project, `C:\Users\me\shop`, whose hooks were written for bash. `HOME`, `USERPROFILE`, `LOCALAPPDATA`, `APPDATA` and every agent's folder pointed into that user's folder, and PATH held the system folders, Node and the two folders of the agents.
+The examples below were run in a throwaway Windows user, shown as `C:\Users\me`: the real machine (Windows 11, no PowerShell 7, Git for Windows at `E:\Das\Git`, not on PATH), Claude Code 2.1.302 in `.local\bin`, Codex CLI, Gemini CLI and Copilot CLI installed by npm and reached from `AppData\Roaming\npm` (a junction to the install the tests use), the Cursor CLI launcher as an earlier install left it, and a project, `C:\Users\me\shop`, whose hooks were written for bash. `HOME`, `USERPROFILE`, `LOCALAPPDATA`, `APPDATA` and every agent's folder pointed into that user's folder, and PATH held the system folders, Node and the two folders of the agents.
 
 ### `check`
 
@@ -410,7 +410,7 @@ error    { ok, error }
 
 `check` collects the facts first, from the machine, and judges them after; the same facts feed the text, the markdown and the JSON.
 
-1. **The machine.** The build of Windows from `ver` and the registry (`UBR` and `DisplayVersion`); the PowerShell editions: Windows PowerShell 5.1 at `%SystemRoot%\System32\WindowsPowerShell\v1.0` and every `pwsh.exe` that `where.exe` lists or an installer's folder holds, each asked once for its edition, language mode and `Get-ExecutionPolicy -List`; Git for Windows from the registry, `where.exe git` and the usual folders; every `bash.exe` on PATH, told apart (Git Bash, or the WSL launcher in `System32`); `LongPathsEnabled`; `git config` for `core.autocrlf` and `core.longpaths`; `chcp`; `wsl.exe -l -v`; Node and npm.
+1. **The machine.** The release and build of Windows from the operating system, and the update revision (`UBR`) and `DisplayVersion` from the registry; the PowerShell editions: Windows PowerShell 5.1 at `%SystemRoot%\System32\WindowsPowerShell\v1.0` and every `pwsh.exe` that `where.exe` lists or an installer's folder holds, each asked once for its edition, language mode and `Get-ExecutionPolicy -List`; Git for Windows from the registry, `where.exe git` and the usual folders; every `bash.exe` on PATH, told apart (Git Bash, or the WSL launcher in `System32`); `LongPathsEnabled`; `git config` for `core.autocrlf` and `core.longpaths`; `chcp`; `wsl.exe -l -v`; Node and npm.
 2. **Every agent.** The folders of PATH in order, trying each name in the order of `PATHEXT` as `where.exe` does (`test/windows.test.mjs` compares the two), then the places the installers use: npm's global folder, WinGet, the native installers, the desktop apps' bundles under `%APPDATA%\Claude\claude-code` and the Microsoft Store package of Codex, the cache that `copilot.exe` unpacks under `%LOCALAPPDATA%\copilot\pkg`, the Cursor CLI folder `%LOCALAPPDATA%\cursor-agent`. An npm `.cmd` shim is followed to the JavaScript it starts and the program next to it. A version is read from the `package.json` of the package, the version resource of an `.exe`, or the name of a version folder, and the report says which; only `check --live` asks the program (`--version`).
 3. **The shell.** For Claude Code, the search it makes for Git Bash, in its order, and the rules for its PowerShell tool (the 129 cases of `test/shell-table.mjs`, put to the binary in claude-windows-doctor and held to the prediction here). For Codex CLI, Gemini CLI and Copilot CLI, how each finds a PowerShell, from the runs described below. For Cursor, the launcher read from disk.
 4. **Hooks.** The files each agent reads: Claude Code's settings (user, project, local, managed); Codex's `config.toml` (user, system under `ProgramData`, and a trusted project's) and `hooks.json`, with `command_windows`; Gemini CLI's settings (system, user, project); Copilot CLI's `COPILOT_HOME\hooks`, `.github\hooks`, the policy folder and the project's `.claude\settings.json`; Cursor's `hooks.json` files. Each command is judged: what starts it, whether it looks like bash, whether it starts a `.ps1` under a blocking execution policy, whether it starts a file with no extension.
@@ -425,7 +425,7 @@ On Linux and macOS, `check` says there is nothing to check and exits 0. Inside a
 It sends nothing anywhere, has no telemetry and no account, and has no network code except the local connection of `check --live` (a server on 127.0.0.1 for the fake API, in `src/live.mjs`, the only file that opens a connection).
 
 - **It reads** the settings and hook files named above (only the keys that matter), the registry (the values of `HKCU\Environment`, `LongPathsEnabled`, the code pages, the build of Windows, the managed settings of Claude Code, where Git for Windows is installed), the folders of PATH and of the installers, the `package.json` of npm packages, the version resource of programs, Codex's sandbox log, and the output of `where.exe`, `reg.exe query`, `git`, `powershell.exe` (and the first `pwsh.exe`), `cmd.exe /c chcp`, `wsl.exe -l -v`, `npm`, and `Get-AppxPackage` for the Codex desktop app. No file is shown whole, and an environment value is printed only when its name says it is a path or a switch: a token in `ANTHROPIC_API_KEY` shows as "set".
-- **It writes nothing** of yours. `src/write.mjs` is the only code that writes, and it makes the throwaway folders of `check --live`, under the system temp folder, and removes them afterwards. A test fails if any other file in `src/` can write or start a program, or if a file other than `src/live.mjs` can open a connection.
+- **It writes nothing** of yours. `src/write.mjs` is the only code that writes, and it makes the throwaway folders of `check --live`, under the system temp folder, and removes them afterwards. A test fails if a file other than `src/write.mjs` can write, a file other than `src/sys.mjs` and `src/live.mjs` can start a program, or a file other than `src/live.mjs` can open a connection.
 - **It starts an agent only with `--live`.** The binary gets a dummy key, a throwaway home and project folder, and none of your agent variables; your hooks do not run. The guard refuses to start anything unless every home folder is inside the throwaway folder and every proxy is a closed port on 127.0.0.1 (with `NO_PROXY=127.0.0.1,localhost`): a probe on 17 October 2026 wrote into a real `~/.codex` because `HOME` was set and `CODEX_HOME` was not, and the guard exists so that it cannot happen again. The Cursor CLI is never started. See [SECURITY.md](SECURITY.md).
 
 ## What was verified, and how
@@ -485,7 +485,13 @@ The Cursor CLI was not installed or run: it needs a login, and its installer (`i
 
 ### Tests
 
-@@TESTCOUNT@@
+- **274 automated tests** (`npm test`, Node's own runner, no dependencies). `node --test` also reports each of the 12 helper files under `test/` as a passing test; those are not counted here (the runner's total was 286). On Windows 231 pass and 43 are skipped when no real binary is named: the skipped ones are the real-binary checks described above, which run only when `E2E_CLAUDE`, `E2E_CODEX`, `E2E_GEMINI` or `E2E_COPILOT` names a binary. On Linux and macOS fewer pass, because the tests that read the real Windows are skipped as well; everything else there runs against pretend Windows machines. The test that states this number runs the suite a second time to count it, which is about half of the time `npm test` takes. The tests cover:
+  - Claude Code's shell: the 129 cases of the table against the prediction on a pretend machine, the settings files, Git Bash, the user environment, WSL (`claude-shell.test.mjs`, `claude-settings.test.mjs`, `gitbash.test.mjs`, `userenv.test.mjs`, `wsl.test.mjs`, `facts.test.mjs`).
+  - The inventory of binaries, launchers and shims, and versions read without running anything (`inventory.test.mjs`), the machine and the PowerShell editions (`machine.test.mjs`), Codex on Windows (`codex.test.mjs`), the Cursor launcher, node-pty and the Node each package asks for (`agentfacts.test.mjs`), and the hooks (`hooks.test.mjs`).
+  - The findings: each of the 77 ids is produced by some pretend machine, with the severity of its table and the basis of its page (`findings.test.mjs`); the pages of `explain` (`explain.test.mjs`); the text, markdown and JSON reports, the cap of 12 findings and 500 characters, and that a secret in the environment is in none of them (`report.test.mjs`); the options, the exit codes and every usage error (`cli.test.mjs`).
+  - `check --live` against stand-ins for the four binaries: the guard refuses a missing, empty, relative or outside folder variable and a proxy that is not the closed port, in every spelling; the fake APIs; what each run reads (`live.test.mjs`). The guard of the tests, the same for the real binaries (`sandbox.test.mjs`).
+  - The real Windows, read only (`windows.test.mjs`), and the real binaries (`e2e-claude.test.mjs`, `e2e-codex.test.mjs`, `e2e-gemini.test.mjs`, `e2e-copilot.test.mjs`, `e2e-live.test.mjs`).
+  - The repository and the README (`repo.test.mjs`, `readme.test.mjs`): no dependencies, who may start a program, open a connection or write a file, that no agent binary starts outside the guard, LF line endings, the community files and the workflows; the README's sections, usage block, numbers, table of findings, JSON shapes, examples and Files table.
 
 ## Not verified
 
