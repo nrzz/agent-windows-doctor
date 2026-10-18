@@ -103,15 +103,31 @@ test("collectMachine: everything the machine section says, from a pretend Window
 
 // ---- the shell each agent gives the model --------------------------------------------------------------------------------------------
 
-test("shellFor codex: the first pwsh.exe on PATH by its full path, else Windows PowerShell 5.1 by its full path; there is no key to choose", () => {
+test("shellFor codex: pwsh on PATH, then the PowerShell 7 of Program Files, then powershell on PATH, then the Windows PowerShell 5.1 of System32, each by its full path; there is no key to choose", () => {
+  const PS51 = "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe";
   const five = shellFor("codex", { machine: collectMachine(winMachine(), {}) });
-  assert.deepEqual([five.state, five.shell.core, five.shell.path, five.tool, five.basis], ["ok", false, "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe", "exec_command", "verified"]);
-  assert.match(five.how.join(" "), /PATH is not used for it/);
+  assert.deepEqual([five.state, five.shell.core, five.shell.path, five.tool, five.basis], ["ok", false, PS51, "exec_command", "verified"]);
+  assert.match(five.how[0], /^no pwsh.exe on PATH and no PowerShell 7 in C:\\Program Files, so the first powershell.exe on PATH, by its full path$/);
   assert.match(five.how.join(" "), /windows\.shell_path is not a key of Codex CLI 0\.163\.0/);
+  assert.match(five.how.join(" "), /a pwsh.exe in the project folder, or in a ProgramFiles folder that an environment variable names, is not used/);
+  // 1: pwsh on PATH
   const seven = shellFor("codex", { machine: collectMachine(withPwsh(), {}) });
   assert.deepEqual([seven.shell.core, seven.shell.path], [true, PS7]);
-  const onlyInstalled = shellFor("codex", { machine: collectMachine(winMachine({ files: [PS7] }), {}) });
-  assert.equal(onlyInstalled.shell.core, false, "a pwsh.exe off PATH is not used");
+  assert.match(seven.how[0], /^the first pwsh.exe on PATH, by its full path$/);
+  // 2: PowerShell 7 in Program Files that PATH does not list is started all the same (put to Codex on the windows-latest runner)
+  const fixed = shellFor("codex", { machine: collectMachine(winMachine({ files: [PS7] }), {}) });
+  assert.deepEqual([fixed.shell.core, fixed.shell.path], [true, PS7]);
+  assert.match(fixed.how[0], /^no pwsh.exe on PATH, so PowerShell 7 at C:\\Program Files\\PowerShell\\7\\pwsh.exe: Codex has that path written into it/);
+  // a pwsh.exe in another folder that no PATH lists, or in the Program Files that an environment variable names, is not used
+  const other = shellFor("codex", { machine: collectMachine(winMachine({ files: ["D:\\Program Files\\PowerShell\\7\\pwsh.exe"], env: { ProgramW6432: "D:\\Program Files", ProgramFiles: "D:\\Program Files" } }), {}) });
+  assert.equal(other.shell.core, false);
+  // 3: a powershell.exe first on PATH is started, wherever it is
+  const copy = shellFor("codex", { machine: collectMachine(winMachine({ files: ["C:\\tools\\powershell.exe"], env: { Path: "C:\\tools;C:\\Windows\\System32;C:\\Windows;C:\\Windows\\System32\\WindowsPowerShell\\v1.0" } }), {}) });
+  assert.equal(copy.shell.path, "C:\\tools\\powershell.exe");
+  // 4: with no PowerShell folder on PATH, the path written into Codex
+  const noPath = shellFor("codex", { machine: collectMachine(winMachine({ env: { Path: "C:\\Windows\\System32;C:\\Windows" } }), {}) });
+  assert.deepEqual([noPath.state, noPath.shell.path], ["ok", PS51]);
+  assert.match(noPath.how[0], /^no PowerShell on PATH and no PowerShell 7 in C:\\Program Files, so Windows PowerShell 5.1 at C:\\Windows\\System32\\WindowsPowerShell\\v1.0, a path written into Codex$/);
 });
 
 test("shellFor gemini and copilot: pwsh.exe or powershell.exe through PATH, and nothing when neither is on PATH", () => {

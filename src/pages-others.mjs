@@ -50,7 +50,7 @@ function inventoryPages(agent) {
     {
       id: `${agent}.older-first`, basis: "verified", title: `The ${cmd} that runs first is older than another one`,
       means: "PATH lists the folder of an older install before the folder of a newer one.",
-      does: ["V: the order is that of PATH and PATHEXT, which this tool reads the way where.exe does (test/windows.test.mjs compares the two on the real machine); the versions are read from disk, or asked of the program with --live."],
+      does: ["V: the order is that of PATH and then PATHEXT, the one in which cmd.exe starts a command (test/windows.test.mjs starts the same command from several folders in cmd.exe and compares); the versions are read from disk, or asked of the program with --live."],
       fix: ["Put the newer one's folder first, or remove the older install."],
       issues: [],
     },
@@ -236,7 +236,7 @@ export const OTHER_PAGES = [
     does: [
       "V: with pwsh.exe first on PATH the shell command line was <that file> -NoProfile -Command ...; with only powershell.exe it was C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -NoProfile -NonInteractive -Command ... (Gemini CLI 0.64.0, a copy of powershell.exe named pwsh.exe stood in for PowerShell 7).",
       "V: a pwsh.exe that was only in %ProgramFiles%\\PowerShell\\7 (off PATH) was not used.",
-      'V: with the PowerShell folder off PATH, run_shell_command answered {"error":"spawn powershell.exe ENOENT"}; the model got that, the answer was printed, and then the process ended with a libuv assertion (`Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), file src\\win\\async.c, line 94`) and exit code 3221226505, in 4 of 4 runs (with a PowerShell found it ended with 0).',
+      'V: with the PowerShell folder off PATH, run_shell_command answered {"error":"spawn powershell.exe ENOENT"}; the model got that, the answer was printed, and then the process ended with a libuv assertion (`Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), file src\\win\\async.c, line 94`) and exit code 3221226505, in every run (with a PowerShell found it ended with 0).',
     ],
     fix: ["Put C:\\Windows\\System32\\WindowsPowerShell\\v1.0 on PATH, then open a new terminal."],
     issues: [GEMINI(12678, "Windows always runs in PowerShell even under Git Bash (closed as a duplicate)"), GEMINI(21340, "feat: Add configurable shell executable for run_shell_command on Windows (closed as a duplicate)")],

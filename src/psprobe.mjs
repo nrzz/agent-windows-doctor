@@ -38,19 +38,26 @@ export function probePowerShell(sys, exe) {
 
 const firstExisting = (sys, lines) => (lines || []).filter((l) => sys.isFile(l));
 
+// The two paths that Codex CLI 0.163.0 has written into its program as the places to look for PowerShell when PATH has none (strings in codex.exe; put to the
+// binary by test/e2e-codex.test.mjs: on a runner that has the first one, Codex started it with a PATH that did not list it)
+export const CODEX_FIXED = { pwsh: "C:\\Program Files\\PowerShell\\7\\pwsh.exe", powershell: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" };
+
 /**
  * The PowerShell editions of this machine.
- * Returns { editions: [{ id: "5.1" | "7", label, path, how, onPath, probe }], windows, pwshOnPath: [paths], powershellOnPath: [paths] }:
+ * Returns { editions: [{ id: "5.1" | "7", label, path, how, onPath, probe }], windows, pwshOnPath: [paths], powershellOnPath: [paths], fixed: { pwsh, powershell } }:
  *   Windows PowerShell 5.1 at %SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe
  *   PowerShell 7: every pwsh.exe that where.exe lists, and the places its installers use (%ProgramFiles%\PowerShell\7, the Store alias, .dotnet\tools)
  * Each edition that is found is asked once (the first pwsh.exe on PATH is the one a program that looks for `pwsh` runs).
  */
-export function powerShellFacts(sys, { cwd, probe = true } = {}) {
+export function powerShellFacts(sys, { probe = true } = {}) {
   const root = sys.getEnv("SystemRoot") || sys.getEnv("windir") || "C:\\Windows";
   const editions = [];
   const win51 = W.join(root, "System32", "WindowsPowerShell", "v1.0", "powershell.exe");
-  const pwshLines = sys.platform === "win32" ? firstExisting(sys, sys.where("pwsh", { cwd, env: sys.env })) : [];
-  const psLines = sys.platform === "win32" ? firstExisting(sys, sys.where("powershell", { cwd, env: sys.env })) : [];
+  // where.exe looks in the working folder first; Codex CLI, Gemini CLI and Copilot CLI do not (a pwsh.exe in the project folder was not started by any of them), so PATH is
+  // asked from a folder that holds no PowerShell
+  const neutral = W.join(root, "System32");
+  const pwshLines = sys.platform === "win32" ? firstExisting(sys, sys.where("pwsh", { cwd: neutral, env: sys.env })) : [];
+  const psLines = sys.platform === "win32" ? firstExisting(sys, sys.where("powershell", { cwd: neutral, env: sys.env })) : [];
   if (sys.isFile(win51)) editions.push({ id: "5.1", label: "Windows PowerShell 5.1", path: win51, how: "System32", onPath: psLines.some((l) => W.same(l, win51)), pathIndex: psLines.findIndex((l) => W.same(l, win51)) });
   const seen = new Set();
   const add = (p, how, onPath) => {
@@ -76,7 +83,8 @@ export function powerShellFacts(sys, { cwd, probe = true } = {}) {
       e.probe = probePowerShell(sys, e.path);
     }
   }
-  return { editions, pwshOnPath: pwshLines, powershellOnPath: psLines };
+  const fixed = { pwsh: sys.platform === "win32" && sys.isFile(CODEX_FIXED.pwsh) ? CODEX_FIXED.pwsh : null, powershell: sys.platform === "win32" && sys.isFile(CODEX_FIXED.powershell) ? CODEX_FIXED.powershell : null };
+  return { editions, pwshOnPath: pwshLines, powershellOnPath: psLines, fixed };
 }
 
 /** The execution policy a PowerShell started with no -ExecutionPolicy has: the probe's own answer. */

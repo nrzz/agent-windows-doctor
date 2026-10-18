@@ -143,19 +143,50 @@ test("the PowerShell editions: Windows PowerShell 5.1 is found at System32 and s
   assert.deepEqual([w7.probe.version, w7.probe.languageMode, w7.probe.effective], direct);
 });
 
-test("where.exe and the order of the agents on PATH: the commands of one agent in three folders are listed in the order where.exe lists them", { skip, timeout: 60000 }, () => {
+/** An environment with PATH set once: any other spelling of the name (Git Bash passes PATH, Windows says Path) is dropped first, so that a program sees the value that was meant. */
+const withPath = (value, extra = {}) => {
+  const env = {};
+  for (const [k, v] of Object.entries({ ...process.env, ...extra })) if (k.toLowerCase() !== "path") env[k] = v;
+  env.Path = value;
+  return env;
+};
+
+test("where.exe and the PATH folders: the folders in which the tool finds the commands of one agent are those where.exe lists, in the same order, with the same program files in each", { skip, timeout: 60000 }, () => {
   const root = tmpDir("adw-where-");
   const dirs = ["d1", "d2", "d3"].map((d) => path.join(root, d));
   for (const d of dirs) fs.mkdirSync(d, { recursive: true });
   const files = [["d1", "codex.cmd"], ["d1", "codex"], ["d1", "codex.ps1"], ["d2", "codex.exe"], ["d2", "codex.bat"], ["d3", "codex.com"]];
-  for (const [d, f] of files) fs.writeFileSync(path.join(root, d, f), "");
-  const Path = [...dirs, ...plainWindowsPath()].join(";");
-  const sys = makeSys({ env: { ...process.env, Path }, cwd: root, home: root });
-  const theirs = run("where.exe", ["codex"], { ...process.env, Path }).stdout.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+  for (const [d, f] of files) fs.writeFileSync(path.join(root, d, f), "x");
+  const env = withPath([...dirs, ...plainWindowsPath()].join(";"));
+  const theirs = run("where.exe", ["codex"], env).stdout.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+  assert.ok(theirs.length >= 5, `where.exe listed ${theirs.length} files: ${theirs.join(" | ")}`);
+  const sys = makeSys({ env, cwd: root, home: root });
   const ours = findAgents(sys, { agents: ["codex"] }).agents.codex.entries.filter((e) => e.onPath).map((e) => e.path);
-  // where.exe does not list .ps1 (it is not in PATHEXT); the tool lists it as a script, after the file it belongs to
-  const withoutPs1 = ours.filter((p) => !/\.ps1$/i.test(p));
-  assert.deepEqual(withoutPs1.map((p) => p.toLowerCase()), theirs.map((p) => p.toLowerCase()), `ours: ${ours.join(" | ")}`);
+  assert.ok(ours.length >= 4, `the tool found ${ours.length} files`);
+  // per folder, in the order of PATH; where.exe lists the files of one folder in the order of the file system and also lists a file with no extension (nothing starts that),
+  // so the files of a folder are compared as sets, and without the file that has no extension
+  const byFolder = (list) => {
+    const groups = new Map();
+    for (const p of list) { const d = path.win32.dirname(p).toLowerCase(); groups.set(d, [...(groups.get(d) || []), path.win32.basename(p).toLowerCase()]); }
+    return [...groups].map(([d, names]) => [d, names.filter((n) => /\.[a-z]+$/.test(n) && !n.endsWith(".ps1")).sort()]).filter(([, names]) => names.length);
+  };
+  assert.deepEqual(byFolder(ours), byFolder(theirs));
+});
+
+test("which of the same command in several folders runs first: the one cmd.exe starts is the first the tool names, folders in the order of PATH and files in the order of PATHEXT (.bat before .cmd)", { skip, timeout: 120000 }, () => {
+  const root = tmpDir("adw-first-");
+  const make = (dir, name, label) => { fs.mkdirSync(path.join(root, dir), { recursive: true }); fs.writeFileSync(path.join(root, dir, name), `@echo off\r\necho ${label}\r\n`); };
+  make("d1", "codex.cmd", "d1-cmd");
+  make("d2", "codex.cmd", "d2-cmd");
+  make("d2", "codex.bat", "d2-bat");
+  const cmd = path.win32.join(SYSTEM, "System32", "cmd.exe");
+  for (const [order, expect, label] of [[["d1", "d2"], "d1\\codex.cmd", "d1-cmd"], [["d2", "d1"], "d2\\codex.bat", "d2-bat"]]) {
+    const env = withPath([...order.map((d) => path.join(root, d)), ...plainWindowsPath()].join(";"));
+    const started = spawnSync(cmd, ["/d", "/c", "codex"], { encoding: "utf8", windowsHide: true, input: "", cwd: SYSTEM, env });
+    assert.equal(started.stdout.trim(), label, `cmd.exe started ${JSON.stringify(started.stdout)} for the folders ${order.join(", ")}`);
+    const first = findAgents(makeSys({ env, cwd: SYSTEM, home: root }), { agents: ["codex"] }).agents.codex.first;
+    assert.ok(first && first.path.toLowerCase().endsWith(expect), `the tool names ${first && first.path} as the first, expected ...${expect}`);
+  }
 });
 
 test("the Cursor launcher's version pattern: the rule that this tool applies to a folder name is the rule of PowerShell's -match", { skip, timeout: 60000 }, () => {

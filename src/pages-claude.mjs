@@ -120,7 +120,7 @@ export const CLAUDE_PAGES = [
   {
     id: "claude.older-first", basis: "verified", title: "The claude that runs first is older than another one",
     means: "PATH lists the folder of an older install before the folder of a newer one.",
-    does: ["V: the order is that of PATH and PATHEXT, which this tool reads the way where.exe does (test/windows.test.mjs compares the two on the real machine); the versions are read from disk, or asked of the program with --live."],
+    does: ["V: the order is that of PATH and then PATHEXT, the one in which cmd.exe starts a command (test/windows.test.mjs starts the same command from several folders in cmd.exe and compares); the versions are read from disk, or asked of the program with --live."],
     fix: ["Put the newer one's folder first, or remove the older install."],
     issues: [],
   },

@@ -336,7 +336,7 @@ test("claude doctor, in a throwaway world: a native install whose folder is not 
   // it reports the install and the settings, and says nothing of which shell the model gets
   assert.doesNotMatch(text, /\b(shell|powershell|pwsh|bash)\b/i, "claude doctor names no shell");
   // only an install that is not from npm (the desktop app's bundle, the native installer) has a folder that doctor wants on PATH
-  if (/^Running: npm/m.test(text)) assert.doesNotMatch(text, /not in your PATH/i, "an npm install has no such line");
+  if (/^Running: npm/m.test(text)) { assert.doesNotMatch(text, /not in your PATH/i, "an npm install has no such line"); assert.match(text, /No installation issues found/); }
   else assert.match(text, /Native installation exists but .* is not in your PATH/i);
 });
 

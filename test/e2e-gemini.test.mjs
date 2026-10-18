@@ -1,7 +1,7 @@
 // Checks against the real Gemini CLI (they run only when E2E_GEMINI names one, and only on Windows): which PowerShell its run_shell_command starts and how it finds it, the error it answers with
 // when it finds none, which shell runs a hook, what a hook with && does, what a PowerShell in another language mode would do (documented only: a process cannot be put in Constrained Language Mode
 // from its environment), and whether the native half of node-pty is in the npm install. A fake Gemini API answers on 127.0.0.1 (no token is spent); every run has a throwaway HOME and USERPROFILE
-// behind the guard of test/sandbox.mjs. A turn of Gemini CLI takes about 100 seconds on the machine this was written on, so the runs of this file go in parallel. A stand-in for PowerShell 7 is a
+// behind the guard of test/sandbox.mjs. A turn of Gemini CLI takes 12 to 15 seconds on the machine this was written on (more on a loaded one: the timeout of a turn is 190 seconds), so the runs of this file go in parallel. A stand-in for PowerShell 7 is a
 // copy of powershell.exe named pwsh.exe.
 import "./helpers.mjs";
 import test from "node:test";
@@ -24,8 +24,8 @@ const NUMBER = INFO ? INFO.number : "";
 const HOOK = path.join(ROOT, "test", "record-hook.mjs").replace(/\\/g, "/");
 const SYSTEM = process.env.SystemRoot || "C:\\Windows";
 const POWERSHELL_51 = path.win32.join(SYSTEM, "System32", "WindowsPowerShell", "v1.0", "powershell.exe");
-// what the model asks the PowerShell to print: its own command line, its folder, its major version and its language mode
-const WHO = "[Environment]::CommandLine; $PSHOME; $PSVersionTable.PSVersion.Major; $ExecutionContext.SessionState.LanguageMode";
+// what the model asks the PowerShell to print: its own command line, its folder, its major version, its language mode and the file it was started from (no parenthesis outside quotes: Gemini CLI refuses those on PowerShell)
+const WHO = "[Environment]::CommandLine; $PSHOME; $PSVersionTable.PSVersion.Major; $ExecutionContext.SessionState.LanguageMode; Get-Process -Id $PID | Select-Object -ExpandProperty Path";
 
 function standIn(name = "pwsh.exe") {
   const dir = tmpDir("adw-ps7-");
@@ -40,8 +40,9 @@ const HOOKS = {
 };
 
 /** One headless turn in which the model asks run_shell_command for `command` (WHO unless said). */
-async function turn(label, { pathOpts, env = {}, hooks, command = WHO } = {}) {
+async function turn(label, { pathOpts, env = {}, hooks, command = WHO, prep } = {}) {
   const sb = gemini.sandbox(label, hooks ? { hooks } : {});
+  if (prep) prep(sb);
   const log = path.join(sb.base, "hook.jsonl");
   const cases = path.join(sb.base, "cases.json");
   fs.writeFileSync(cases, JSON.stringify(CASES));
@@ -69,8 +70,13 @@ const runs = SKIP ? null : (() => {
   fs.mkdirSync(path.join(pf, "PowerShell", "7"), { recursive: true });
   fs.copyFileSync(POWERSHELL_51, path.join(pf, "PowerShell", "7", "pwsh.exe"));
   const noPsFolder = [path.win32.join(SYSTEM, "System32"), SYSTEM, path.dirname(process.execPath)];
+  const ps5 = standIn("powershell.exe");
   return {
     ps7,
+    ps5,
+    // a powershell.exe (a copy) first on PATH, and a pwsh.exe in the project folder: PATH decides, and the working folder is not searched
+    copy: early(turn("g-copy", { pathOpts: { only: plainWindowsPath(), first: [ps5.dir] } })),
+    inProject: early(turn("g-cwd", { pathOpts: { only: plainWindowsPath() }, prep: (sb) => fs.copyFileSync(POWERSHELL_51, path.join(sb.work, "pwsh.exe")) })),
     plain: early(turn("g-plain", { pathOpts: { only: plainWindowsPath() }, hooks: HOOKS })),
     withPwsh: early(turn("g-pwsh", { pathOpts: { only: plainWindowsPath(), first: [ps7.dir] }, env: { __PSLockdownPolicy: "4" } })),
     // no PowerShell folder on PATH; a pwsh.exe in a ProgramFiles folder that PATH does not list
@@ -85,9 +91,10 @@ test("run_shell_command starts powershell.exe -NoProfile -NonInteractive -Comman
   const run = await runs.plain;
   assert.equal(run.r.code, 0, `${run.r.err.slice(0, 400)}`);
   assert.ok(run.tools.includes("run_shell_command"), `the tool is listed: ${run.tools.join(", ")}`);
-  const [line, home, major, mode] = printed(run.results);
+  const [line, home, major, mode, exe] = printed(run.results);
   assert.match(line, /powershell\.exe"? -NoProfile -NonInteractive -Command/i, run.results);
   assert.match(home, /WindowsPowerShell[\\/]v1\.0/i);
+  assert.ok(W.same(exe, POWERSHELL_51), `the process is ${exe}`);
   assert.equal(major, "5");
   assert.equal(mode, "FullLanguage");
   assert.ok(run.prediction.shell && /powershell\.exe$/i.test(run.prediction.shell.path), `the prediction says ${run.prediction.shell && run.prediction.shell.path}`);
@@ -98,8 +105,9 @@ test("run_shell_command starts powershell.exe -NoProfile -NonInteractive -Comman
 test("a pwsh.exe on PATH is started instead, with -NoProfile -Command; __PSLockdownPolicy=4 in the environment of the process does not change the language mode", { skip: SKIP, timeout: 900000 }, async (t) => {
   const run = await runs.withPwsh;
   assert.equal(run.r.code, 0, `${run.r.err.slice(0, 400)}`);
-  const [line, , , mode] = printed(run.results);
+  const [line, , , mode, exe] = printed(run.results);
   assert.match(line, /pwsh\.exe"? -NoProfile -Command/i, run.results);
+  assert.ok(W.same(exe, runs.ps7.file), `the process is ${exe}, the stand-in is ${runs.ps7.file}`);
   assert.doesNotMatch(line, /-NonInteractive/, "the pwsh.exe form has no -NonInteractive");
   assert.equal(mode, "FullLanguage", "the switch is read from the machine, not from the environment of a process");
   assert.ok(run.prediction.shell && W.same(run.prediction.shell.path, runs.ps7.file), `the prediction says ${run.prediction.shell && run.prediction.shell.path}`);
@@ -160,4 +168,16 @@ test("a hook that exits with 2 blocks the tool call, because the command line Ge
   assert.equal(fail.lines.filter((l) => l.label === "BeforeTool").length, 1, "the hook ran");
   assert.match(fail.results, /RAN-OK/, `the command ran after a hook that exited with 1: ${fail.results}`);
   t.diagnostic(`Gemini CLI ${NUMBER}: exit 2 gave: ${block.results.replace(/\s+/g, " ").slice(0, 200)}; exit 1: the command ran`);
+});
+
+test("PATH decides, as for a bare name: the first powershell.exe on it is started wherever it is, and a pwsh.exe in the project folder is not", { skip: SKIP, timeout: 900000 }, async (t) => {
+  const exeOf = (text) => printed(text).filter((s) => /^[A-Za-z]:\\.*\.exe$/i.test(s)).pop() || null;
+  const copy = await runs.copy;
+  assert.equal(copy.r.code, 0, copy.r.err.slice(0, 300));
+  assert.ok(W.same(exeOf(copy.results), runs.ps5.file), `the copy first on PATH was expected: ${exeOf(copy.results)} ran`);
+  assert.ok(copy.prediction.shell && W.same(copy.prediction.shell.path, runs.ps5.file), `the prediction says ${copy.prediction.shell && copy.prediction.shell.path}`);
+  const inProject = await runs.inProject;
+  assert.equal(inProject.r.code, 0, inProject.r.err.slice(0, 300));
+  assert.ok(W.same(exeOf(inProject.results), POWERSHELL_51), `System32's was expected, not the pwsh.exe of the project folder: ${exeOf(inProject.results)} ran`);
+  t.diagnostic(`Gemini CLI ${NUMBER}: a powershell.exe first on PATH ran from ${exeOf(copy.results)}; with a pwsh.exe in the project folder ${exeOf(inProject.results)} ran`);
 });

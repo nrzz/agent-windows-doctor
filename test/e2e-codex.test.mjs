@@ -13,6 +13,7 @@ import { launch, plainWindowsPath } from "./sandbox.mjs";
 import { makeSys } from "../src/sys.mjs";
 import { collectMachine } from "../src/machine.mjs";
 import { shellFor } from "../src/shells.mjs";
+import { CODEX_FIXED } from "../src/psprobe.mjs";
 import { codexOnWindows, readCodexLayers, readSandboxLog } from "../src/codexwin.mjs";
 import { findAgents } from "../src/inventory.mjs";
 import * as W from "../src/winpath.mjs";
@@ -37,8 +38,9 @@ const stderrOf = (r) => r.err.split(/\r?\n/).filter((l) => l && !/WARNING: proce
 const TOML_HOOK = (event, command, extra = "", key = "command") => `[[hooks.${event}]]\nmatcher = "*"\n[[hooks.${event}.hooks]]\ntype = "command"\n${key} = ${JSON.stringify(command)}\ntimeout = 30\n${extra}\n`;
 
 /** One `codex exec` that asks the shell to echo: { sb, api, r, command (the first command_execution item), prediction }. */
-async function shellRun(label, { top = "", tables = "", env = {}, pathOpts, args = [], steps = [{ shell: "echo PROBE-SHELL" }] } = {}) {
+async function shellRun(label, { top = "", tables = "", env = {}, pathOpts, args = [], steps = [{ shell: "echo PROBE-SHELL" }], prep } = {}) {
   const sb = codex.sandbox(label);
+  if (prep) prep(sb);
   const api = await codex.fake(steps);
   try {
     codex.writeConfig(sb, api, { top, tables });
@@ -66,23 +68,42 @@ test("codex --version prints codex-cli and the number of the npm package; the sh
   const direct = await launch(sb, shim.program, ["--version"], { cwd: sb.work, timeout: 60000 });
   assert.equal(direct.code, 0, direct.err);
   assert.equal(direct.out.trim(), INFO.version, "the vendored program prints the same");
+  // the two paths that the order of the shell ends in (src/shells.mjs, the README's table) are text in the program, once each
+  const program = fs.readFileSync(shim.program);
+  for (const p of Object.values(CODEX_FIXED)) {
+    let n = 0, at = -1;
+    while ((at = program.indexOf(p, at + 1, "latin1")) >= 0) n++;
+    assert.equal(n, 1, `${p} occurs ${n} times in ${shim.program}`);
+  }
   t.diagnostic(`codex --version: ${INFO.version}; the shim ${shim.path} leads through ${shim.leadsTo.join(" -> ")} to ${shim.program}`);
 });
 
-test("the shell of the model's commands: pwsh.exe by its full path when PATH has one, else Windows PowerShell 5.1 by its full path under SystemRoot, and the prediction says the same", { skip: SKIP, timeout: 900000 }, async (t) => {
+const FIXED_PS7 = "C:\\Program Files\\PowerShell\\7\\pwsh.exe";
+// the PowerShell 7 that Codex has written into it as the second place to look; the machine this was written on has none, the windows-latest runner has one
+const HAS_FIXED_PS7 = IS_WIN && fs.existsSync(FIXED_PS7);
+
+test("the shell of the model's commands: pwsh on PATH, then the PowerShell 7 of Program Files, then powershell on PATH, then the Windows PowerShell 5.1 of System32, each started by its full path, and the prediction says the same", { skip: SKIP, timeout: 1200000 }, async (t) => {
   const ps7 = standIn();
+  const both = standIn("pwsh.exe");
+  fs.copyFileSync(POWERSHELL_51, path.join(both.dir, "powershell.exe"));
+  const ps5 = standIn("powershell.exe");
   const pf = tmpDir("adw-pf-");
   fs.mkdirSync(path.join(pf, "PowerShell", "7"), { recursive: true });
   fs.copyFileSync(POWERSHELL_51, path.join(pf, "PowerShell", "7", "pwsh.exe"));
   const noPsFolder = [path.win32.join(SYSTEM, "System32"), SYSTEM, path.dirname(process.execPath)];
+  // with no pwsh.exe on PATH, a machine that has the PowerShell 7 of Program Files gets that one, whatever PATH lists; one that has not gets the first powershell.exe on PATH, and with none the path written into Codex
+  const fallback = HAS_FIXED_PS7 ? FIXED_PS7 : POWERSHELL_51;
   const rows = [
-    { id: "no pwsh on PATH", pathOpts: { only: plainWindowsPath() }, expect: POWERSHELL_51 },
-    { id: "a pwsh.exe on PATH", pathOpts: { only: plainWindowsPath(), first: [ps7.dir] }, expect: ps7.file },
-    { id: "a pwsh.exe only in ProgramFiles, off PATH", pathOpts: { only: plainWindowsPath() }, env: { ProgramFiles: pf, ProgramW6432: pf }, expect: POWERSHELL_51 },
-    { id: "the PowerShell folder off PATH", pathOpts: { only: noPsFolder }, expect: POWERSHELL_51 },
+    { id: "no pwsh.exe on PATH", pathOpts: { only: plainWindowsPath() }, expect: fallback },
+    { id: "a pwsh.exe on PATH (a stand-in)", pathOpts: { only: plainWindowsPath(), first: [ps7.dir] }, expect: ps7.file },
+    { id: "a pwsh.exe and a powershell.exe in one folder first on PATH", pathOpts: { only: plainWindowsPath(), first: [both.dir] }, expect: both.file },
+    { id: "a powershell.exe (a copy) first on PATH, no pwsh.exe", pathOpts: { only: plainWindowsPath(), first: [ps5.dir] }, expect: HAS_FIXED_PS7 ? FIXED_PS7 : ps5.file },
+    { id: "a pwsh.exe only in a ProgramFiles folder that ProgramFiles and ProgramW6432 name", pathOpts: { only: plainWindowsPath() }, env: { ProgramFiles: pf, ProgramW6432: pf }, expect: fallback },
+    { id: "the PowerShell folder off PATH", pathOpts: { only: noPsFolder }, expect: fallback },
+    { id: "a pwsh.exe in the project folder", pathOpts: { only: plainWindowsPath() }, prep: (sb) => fs.copyFileSync(POWERSHELL_51, path.join(sb.work, "pwsh.exe")), expect: fallback },
   ];
   for (const row of rows) {
-    const run = await shellRun("shell", { pathOpts: row.pathOpts, env: row.env || {} });
+    const run = await shellRun("shell", { pathOpts: row.pathOpts, env: row.env || {}, prep: row.prep });
     assert.equal(run.r.code, 0, `${row.id}: ${stderrOf(run.r)}`);
     assert.ok(run.command, `${row.id}: Codex ran the command`);
     assert.ok(W.same(run.program, row.expect), `${row.id}: Codex started ${run.program}, expected ${row.expect}`);
@@ -90,7 +111,7 @@ test("the shell of the model's commands: pwsh.exe by its full path when PATH has
     assert.ok(run.prediction.shell && W.same(run.prediction.shell.path, run.program), `${row.id}: the prediction says ${run.prediction.shell && run.prediction.shell.path}`);
     assert.match(run.items[0].aggregated_output, /PROBE-SHELL/);
   }
-  t.diagnostic(`${rows.length} rows on Codex CLI ${NUMBER}: ${rows.map((r) => r.id).join("; ")}`);
+  t.diagnostic(`${rows.length} rows on Codex CLI ${NUMBER}, ${HAS_FIXED_PS7 ? "with" : "without"} a PowerShell 7 in C:\\Program Files: ${rows.map((r) => r.id).join("; ")}`);
 });
 
 test("windows.shell_path and the other keys that would name a shell are not keys: --strict-config stops with unknown configuration field, and without it the command runs in PowerShell all the same", { skip: SKIP, timeout: 900000 }, async (t) => {
@@ -186,24 +207,26 @@ test("command_windows and commandWindows replace command on Windows; hooks.json 
   } finally { await api.close(); }
 });
 
-test("a hook is run by PowerShell: the command line of its parent is powershell.exe -NoProfile -Command, and a bash line with && does not run", { skip: SKIP, timeout: 600000 }, async (t) => {
+test("a hook is run by the PowerShell that runs the model's commands, as powershell.exe -NoProfile -Command, and a bash line with && does not run", { skip: SKIP, timeout: 600000 }, async (t) => {
   const plain = await hookRun("none", { label: "hook-parent", parent: true, pathOpts: { only: plainWindowsPath() }, command: `node "${HOOK}" PreToolUse` });
   assert.equal(plain.r.code, 0, stderrOf(plain.r));
   assert.equal(plain.lines.length, 1);
+  assert.ok(plain.items.length >= 1, "the guarded command ran");
   const parent = plain.lines[0].parent;
-  assert.match(parent.name, /^powershell\.exe$/i);
-  assert.ok(W.same(parent.path, POWERSHELL_51), parent.path);
-  assert.match(parent.commandLine, /powershell\.exe"? -NoProfile -Command /i, parent.commandLine);
-  // && is not a statement separator of Windows PowerShell 5.1: the hook does not run, and the command it guarded does
+  assert.match(parent.name, /^(powershell|pwsh)\.exe$/i);
+  assert.ok(W.same(parent.path, programOf(plain.items[0].command)), `the hook's parent is ${parent.path}; the shell tool's PowerShell is ${programOf(plain.items[0].command)}`);
+  assert.match(parent.commandLine, /(powershell|pwsh)\.exe"? -NoProfile -Command /i, parent.commandLine);
+  // && is not a statement separator of Windows PowerShell 5.1: the hook does not run, and the command it guarded does. (PowerShell 7 has &&: the line is a Windows PowerShell 5.1 test.)
+  const only51 = !HAS_FIXED_PS7;
   const andand = await hookRun("none", { label: "hook-andand", pathOpts: { only: plainWindowsPath() }, command: `node "${HOOK}" PreToolUse && echo done` });
-  assert.equal(andand.lines.length, 0, "the hook did not run");
+  assert.equal(andand.lines.length, only51 ? 0 : 1, only51 ? "the hook did not run" : "PowerShell 7 reads &&, so the hook ran");
   assert.equal(andand.ran, true, "the command it guarded ran");
   // a pwsh.exe on PATH runs the hook instead (a stand-in)
   const ps7 = standIn();
   const withPwsh = await hookRun("none", { label: "hook-pwsh", parent: true, pathOpts: { only: plainWindowsPath(), first: [ps7.dir] }, command: `node "${HOOK}" PreToolUse` });
   assert.equal(withPwsh.lines.length, 1);
+  assert.ok(W.same(withPwsh.lines[0].parent.path, ps7.file), `the parent is ${withPwsh.lines[0].parent.path}, the stand-in is ${ps7.file}`);
   t.diagnostic(`parent of a hook with pwsh.exe on PATH: ${withPwsh.lines[0].parent.path}; without: ${parent.path}; on Codex CLI ${NUMBER}`);
-  assert.ok(W.same(withPwsh.lines[0].parent.path, ps7.file) || W.same(withPwsh.lines[0].parent.path, POWERSHELL_51), "PowerShell ran the hook");
 });
 
 test("a hook runs only after it is trusted: without --dangerously-bypass-hook-trust the hook is skipped and the command runs", { skip: SKIP, timeout: 300000 }, async () => {

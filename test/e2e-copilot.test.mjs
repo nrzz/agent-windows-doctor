@@ -26,7 +26,9 @@ const POWERSHELL_51 = path.win32.join(SYSTEM, "System32", "WindowsPowerShell", "
 const WSL_BASH = path.win32.join(SYSTEM, "System32", "bash.exe");
 const GIT_BASH = IS_WIN ? (() => { const found = discoverGitBash(makeSys(), { cwd: process.cwd() }); return found.length ? found[0].path : null; })() : null;
 // what the model asks the PowerShell to print: its own command line, and the folder and major version of the PowerShell it is
-const WHO = "[Environment]::CommandLine; $PSHOME; $PSVersionTable.PSVersion.Major";
+const WHO = "[Environment]::CommandLine; $PSHOME; $PSVersionTable.PSVersion.Major; (Get-Process -Id $PID).Path";
+/** The path of the program that ran WHO: the last line of what it printed. */
+const exeOf = (text) => String(text).split(/\r?\n/).map((s) => s.trim()).filter((s) => /^[A-Za-z]:\\.*\.exe$/.test(s)).pop() || null;
 
 function standIn(name = "pwsh.exe") {
   const dir = tmpDir("adw-ps7-");
@@ -36,8 +38,9 @@ function standIn(name = "pwsh.exe") {
 const denied = /Denied by preToolUse hook from "[^"]+" \(hook errored\)/;
 
 /** One run in which the model asks the powershell tool for WHO: { sb, api, r, text (the tool result), tools, prediction }. */
-async function shellRun(label, { pathOpts, env = {}, steps = [{ shell: WHO }] } = {}) {
+async function shellRun(label, { pathOpts, env = {}, steps = [{ shell: WHO }], prep } = {}) {
   const sb = copilot.sandbox(label);
+  if (prep) prep(sb);
   const api = await copilot.fake(steps);
   try {
     const r = await copilot.run(sb, api, { env, path: pathOpts, timeout: 150000 });
@@ -81,7 +84,14 @@ test("the powershell tool: pwsh.exe when PATH has one, else powershell.exe (Wind
     const same = shell && (row.predicted.includes("\\") ? W.same(shell.path, row.predicted) : W.basename(shell.path).toLowerCase() === row.predicted);
     assert.ok(same, `${row.id}: the prediction says ${shell && shell.path}, expected ${row.predicted}`);
   }
-  t.diagnostic(`${rows.length} rows on Copilot CLI ${NUMBER}`);
+  // PATH decides: the first powershell.exe on it is the one started (a copy elsewhere is), and a pwsh.exe in the project folder is not
+  const ps5 = standIn("powershell.exe");
+  const viaCopy = await shellRun("copy", { pathOpts: { only: plainWindowsPath(), first: [ps5.dir] } });
+  assert.ok(W.same(exeOf(viaCopy.text), ps5.file), `the copy first on PATH was expected: ${exeOf(viaCopy.text)} ran`);
+  assert.ok(W.same(viaCopy.prediction.shell.path, ps5.file), `the prediction says ${viaCopy.prediction.shell.path}`);
+  const inProject = await shellRun("cwd", { pathOpts: { only: plainWindowsPath() }, prep: (sb) => fs.copyFileSync(POWERSHELL_51, path.join(sb.work, "pwsh.exe")) });
+  assert.ok(W.same(exeOf(inProject.text), POWERSHELL_51), `System32's was expected, not the pwsh.exe of the project folder: ${exeOf(inProject.text)} ran`);
+  t.diagnostic(`${rows.length + 2} rows on Copilot CLI ${NUMBER}`);
 });
 
 test("with neither pwsh.exe nor powershell.exe on PATH the powershell tool is still listed to the model and answers in these words", { skip: SKIP, timeout: 300000 }, async (t) => {
