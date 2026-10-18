@@ -235,7 +235,7 @@ export const OTHER_PAGES = [
     does: [
       "V: with pwsh.exe first on PATH the shell command line was <that file> -NoProfile -Command ...; with only powershell.exe it was C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -NoProfile -NonInteractive -Command ... (Gemini CLI 0.64.0, a copy of powershell.exe named pwsh.exe stood in for PowerShell 7).",
       "V: a pwsh.exe that was only in %ProgramFiles%\\PowerShell\\7 (off PATH) was not used.",
-      'V: with the PowerShell folder off PATH, run_shell_command answered {"error":"spawn powershell.exe ENOENT"}.',
+      'V: with the PowerShell folder off PATH, run_shell_command answered {"error":"spawn powershell.exe ENOENT"}; the model got that, the answer was printed, and then the process ended with a libuv assertion (`Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), file src\\win\\async.c, line 94`) and exit code 3221226505, in 4 of 4 runs (with a PowerShell found it ended with 0).',
     ],
     fix: ["Put C:\\Windows\\System32\\WindowsPowerShell\\v1.0 on PATH, then open a new terminal."],
     issues: [GEMINI(12678, "Windows always runs in PowerShell even under Git Bash (closed as a duplicate)"), GEMINI(21340, "feat: Add configurable shell executable for run_shell_command on Windows (closed as a duplicate)")],

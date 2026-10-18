@@ -62,9 +62,12 @@ function makeClaude() {
       const turn = (body.messages || []).filter((m) => m.role === "assistant").length;
       const step = script[turn];
       const shell = ((body.tools || []).map((t) => t.name).find((n) => n === "Bash" || n === "PowerShell")) || "Bash";
+      // a step is { shell: "command" } for the first shell tool of the request, { tool: "Write", input: {...} } for any other tool, or { text }
       const events = step && step.shell !== undefined
         ? claudeMessage(`msg_${ctx.n}`, body.model, [{ tool: shell, id: `toolu_${turn}`, input: { command: step.shell, description: "probe" } }])
-        : claudeMessage(`msg_${ctx.n}`, body.model, [{ text: (step && step.text) || "PROBE-DONE" }]);
+        : step && step.tool !== undefined
+          ? claudeMessage(`msg_${ctx.n}`, body.model, [{ tool: step.tool, id: `toolu_${turn}`, input: step.input }])
+          : claudeMessage(`msg_${ctx.n}`, body.model, [{ text: (step && step.text) || "PROBE-DONE" }]);
       const send = sse(res);
       for (const [ev, data] of events) send(ev, data);
       res.end();
