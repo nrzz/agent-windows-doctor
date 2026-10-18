@@ -330,7 +330,7 @@ test("claude doctor, in a throwaway world: a native install whose folder is not 
   const sb = claude.sandbox("doctor");
   const r = await launch(sb, claude.BIN, ["doctor"], { env: { DISABLE_AUTOUPDATER: "1", DISABLE_TELEMETRY: "1", CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1", NO_COLOR: "1", ANTHROPIC_API_KEY: "sk-ant-probe" }, cwd: sb.work, timeout: 180000 });
   const text = `${r.out}${r.err}`.replace(/\x1b\[[0-9;]*m/g, "");
-  t.diagnostic(`claude doctor on ${NUMBER}: ${text.split("\n").filter((l) => /PATH|Feature-flag|flag/i.test(l)).map((l) => l.trim()).join(" | ")}`);
+  t.diagnostic(`claude doctor on ${NUMBER}: ${text.split("\n").length} lines; ${text.split("\n").filter((l) => /PATH|Feature-flag|flag/i.test(l)).map((l) => l.trim()).join(" | ")}`);
   assert.equal(r.code, 0, text);
   assert.match(text, /Feature-flag evaluation disabled \(disabled by CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC\)/);
   // it reports the install and the settings, and says nothing of which shell the model gets
