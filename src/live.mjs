@@ -31,37 +31,45 @@ const PROXY_VARS = ["HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY"];
 // the variables of any agent: none of them reaches a live run
 const AGENT_VAR = /^(CLAUDE|ANTHROPIC|CLAUDECODE|AI_AGENT|MCP_|ENABLE_TOOL_SEARCH|CODEX|OPENAI|COPILOT|GEMINI|GOOGLE_GEMINI|CURSOR|FAKE_API|__PSLockdownPolicy|GITHUB_SHA|SURFACE)/i;
 
-const getVar = (env, name) => { const k = Object.keys(env).find((x) => x.toLowerCase() === name.toLowerCase()); return k === undefined ? undefined : env[k]; };
-function setVar(env, name, value) {
-  for (const k of Object.keys(env)) if (k.toLowerCase() === name.toLowerCase()) delete env[k];
-  if (value !== undefined) env[name] = value;
-}
+// a name may be spelled in several cases in one environment (Http_Proxy and HTTP_PROXY on a system that tells them apart): all spellings are looked at
+const spellings = (env, name) => Object.keys(env).filter((k) => k.toLowerCase() === name.toLowerCase());
+const dropSpellings = (env, name) => { for (const k of spellings(env, name)) delete env[k]; };
+/** True when the name is set, and every spelling of it passes `ok`. */
+const allSpellings = (env, name, ok) => { const keys = spellings(env, name); return keys.length > 0 && keys.every((k) => ok(env[k])); };
 
-/** The guard. Throws unless every folder variable names a folder inside `root` and every proxy names the closed port. Returns the env. */
+/** The guard. Throws unless every folder variable names a folder inside `root` and every proxy names the closed port, in every spelling. Returns the env. */
 export function assertSandboxed(env, root) {
   if (!root) throw new Error("guard: no sandbox root to compare the environment with");
   for (const name of HOME_VARS) {
-    const v = getVar(env, name);
-    if (v === undefined || v === "") throw new Error(`guard: ${name} is not set: the agent would use the real folder (refusing to start a binary)`);
-    if (!W.isAbsolute(v) || !W.isInside(v, root)) throw new Error(`guard: ${name}=${v} is not inside the sandbox ${root} (refusing to start a binary)`);
+    if (!allSpellings(env, name, (v) => typeof v === "string" && v !== "")) throw new Error(`guard: ${name} is not set: the agent would use the real folder (refusing to start a binary)`);
+    for (const k of spellings(env, name)) {
+      const v = env[k];
+      if (!W.isAbsolute(v) || !W.isInside(v, root)) throw new Error(`guard: ${k}=${v} is not inside the sandbox ${root} (refusing to start a binary)`);
+    }
   }
-  for (const name of PROXY_VARS) if (getVar(env, name) !== DEAD_PROXY) throw new Error(`guard: ${name} is not the closed port ${DEAD_PROXY} (refusing to start a binary)`);
-  if (getVar(env, "NO_PROXY") !== NO_PROXY) throw new Error(`guard: NO_PROXY is not ${NO_PROXY} (refusing to start a binary)`);
+  for (const name of PROXY_VARS) if (!allSpellings(env, name, (v) => v === DEAD_PROXY)) throw new Error(`guard: ${name} is not the closed port ${DEAD_PROXY} (refusing to start a binary)`);
+  if (!allSpellings(env, "NO_PROXY", (v) => v === NO_PROXY)) throw new Error(`guard: NO_PROXY is not ${NO_PROXY} (refusing to start a binary)`);
   return env;
 }
 
-/** The environment of a live run: this machine's, without any variable of an agent, every folder inside the world, the proxies on the closed port, then `extra`. */
+/**
+ * The environment of a live run: this machine's, without any variable of an agent, every folder inside the world, the proxies on the closed port, then `extra`.
+ * Where names differ by case (not on Windows) the lower-case spellings of the proxy variables are set too, as curl-style tools read them.
+ */
 export function liveEnv(sys, world, extra = {}) {
   const env = {};
   for (const [k, v] of Object.entries(sys.env)) if (!AGENT_VAR.test(k) && !HOME_VARS.some((h) => h.toLowerCase() === k.toLowerCase())) env[k] = v;
   const set = {
     HOME: world.home, USERPROFILE: world.home, APPDATA: world.appData, LOCALAPPDATA: world.localAppData,
     CLAUDE_CONFIG_DIR: world.claude, CODEX_HOME: world.codex, COPILOT_HOME: world.copilot, GEMINI_CLI_HOME: world.home,
-    NO_COLOR: "1", NO_PROXY, no_proxy: NO_PROXY,
+    NO_COLOR: "1", NO_PROXY,
   };
-  for (const v of PROXY_VARS) { set[v] = DEAD_PROXY; }
-  for (const [k, v] of Object.entries(set)) setVar(env, k, v);
-  for (const [k, v] of Object.entries(extra)) setVar(env, k, v);
+  for (const v of PROXY_VARS) set[v] = DEAD_PROXY;
+  const lower = {};
+  if (sys.platform !== "win32") for (const name of [...PROXY_VARS, "NO_PROXY"]) lower[name.toLowerCase()] = set[name];
+  for (const name of [...Object.keys(set), ...Object.keys(lower)]) dropSpellings(env, name);
+  Object.assign(env, set, lower);
+  for (const [k, v] of Object.entries(extra)) { dropSpellings(env, k); if (v !== undefined) env[k] = v; }
   return assertSandboxed(env, world.base);
 }
 

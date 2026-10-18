@@ -129,7 +129,9 @@ export function collectWsl(sys, { project, agents = AGENT_IDS }) {
   const sel = AGENT_IDS.filter((a) => agents.includes(a));
   const settings = loadSettingsFiles(sys, { project });
   const settingsFacts = shellFacts(settings);
-  const inventory = findAgents(sys, { agents: sel.includes("claude") ? ["claude"] : [] });
+  // inside WSL only Claude Code is looked for; Codex's home is read from the environment
+  const wslAgents = sel.includes("claude") ? ["claude"] : [];
+  const inventory = findAgents(sys, { agents: wslAgents });
   const locations = wslLocations(sys, project || sys.cwd);
   // the Windows policy, read through /mnt/c, tells whether this side inherits it
   const win = "/mnt/c/Program Files/ClaudeCode/managed-settings.json";
@@ -137,7 +139,7 @@ export function collectWsl(sys, { project, agents = AGENT_IDS }) {
   const wslInherits = [...settingsFacts.wslInherits];
   if (text) { try { const j = JSON.parse(text); if (j && j.wslInheritsWindowsSettings !== undefined) wslInherits.push({ source: "C:\\Program Files\\ClaudeCode\\managed-settings.json", display: win, value: j.wslInheritsWindowsSettings }); } catch { /* not JSON */ } }
   const facts = {
-    platform: "linux", kind: "wsl", project: locations.project, agents: sel,
+    platform: "linux", kind: "wsl", project: locations.project, agents: wslAgents, asked: wslAgents,
     system: { os: sys.osVersion, release: sys.release, arch: sys.arch, wsl: inside.version },
     inside, settings: { configDir: settings.configDir, configSource: settings.configSource },
     inventory, locations, wslInherits,
