@@ -106,7 +106,7 @@ test("check --markdown always exits 0, whatever it found, and prints the short r
   assert.equal(r.err, "");
 });
 
-test("check on Linux and macOS says there is nothing to check and exits 0; --live is refused with exit 1", async () => {
+test("check on Linux and macOS says there is nothing to check and exits 0, with --live as well: there is nothing to prove", async () => {
   for (const platform of ["linux", "darwin"]) {
     const sys = fakeMachine({ platform });
     const r = await run(["check"], { sys });
@@ -115,9 +115,10 @@ test("check on Linux and macOS says there is nothing to check and exits 0; --liv
     assert.deepEqual((await run(["check", "--json"], { sys })).json().applicable, false);
     assert.match((await run(["check", "--markdown"], { sys })).out, /^## agent-windows-doctor check\nNothing to check/);
     const live = await run(["check", "--live"], { sys });
-    assert.equal(live.code, 1);
-    assert.match(live.err, /there is nothing to prove here/);
-    assert.equal((await run(["check", "--live", "--json"], { sys })).json().refused.includes("nothing to prove"), true);
+    assert.equal(live.code, 0);
+    assert.equal(live.out, r.out, "the answer with --live is the answer without it");
+    assert.equal(live.err, "");
+    assert.deepEqual((await run(["check", "--live", "--json"], { sys })).json(), (await run(["check", "--json"], { sys })).json());
     assert.equal((await run(["agents"], { sys })).code, 0);
     assert.equal((await run(["agents", "--json"], { sys })).json().applicable, false);
   }

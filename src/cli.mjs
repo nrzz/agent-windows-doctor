@@ -169,12 +169,8 @@ export async function main(argv, io = {}) {
 
     // check
     if (kind === "other") {
+      // --live is no exception: on Linux and macOS there is nothing to check, so nothing to prove, and the answer is the same with exit code 0
       const f = notApplicable(sys);
-      if (o.live) {
-        const msg = "check --live proves the shell choice of each agent on Windows: there is nothing to prove here";
-        if (o.json) stdout.write(`${JSON.stringify({ ok: false, refused: msg, applicable: false, platform: sys.platform }, null, 2)}\n`); else stderr.write(`${msg}\n`);
-        return 1;
-      }
       if (o.markdown) stdout.write(checkMarkdown(f)); else emit(checkJson(f), checkText(f));
       return 0;
     }

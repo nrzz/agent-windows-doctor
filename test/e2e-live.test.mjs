@@ -24,14 +24,19 @@ function setup(label, agents) {
   return { w, env, flags };
 }
 
-test("check --live on a system that is not Windows says there is nothing to check, and exits with 0", { skip: IS_WIN && "this runs where there is nothing to check" }, () => {
+test("on a system that is not Windows, from the real command line: check says there is nothing to check and exits with 0, and so does check --live, since there is nothing to prove", { skip: IS_WIN && "this runs where there is nothing to check" }, () => {
   const w = world("nothing");
-  const r = runCli(["check", "--live"], { cwd: w.work, env: w.env });
+  const r = runCli(["check"], { cwd: w.work, env: w.env });
   assert.equal(r.code, 0, r.all);
-  assert.match(r.out, /nothing to check/i);
-  const j = runCli(["check", "--live", "--json"], { cwd: w.work, env: w.env });
+  assert.match(r.out, /Nothing to check on /);
+  const j = runCli(["check", "--json"], { cwd: w.work, env: w.env });
   assert.equal(j.code, 0, j.all);
   assert.equal(JSON.parse(j.out).applicable, false);
+  const live = runCli(["check", "--live"], { cwd: w.work, env: w.env });
+  assert.equal(live.code, 0, live.all);
+  assert.equal(live.out, r.out, "the answer with --live is the answer without it");
+  assert.equal(live.err, "");
+  assert.equal(runCli(["agents"], { cwd: w.work, env: w.env }).code, 0);
 });
 
 for (const agent of ALL) {
