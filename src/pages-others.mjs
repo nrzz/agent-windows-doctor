@@ -180,7 +180,8 @@ export const OTHER_PAGES = [
     does: [
       "D: the documentation: an explicit mxc \"fails if MXC is unavailable or blocked by managed requirements\"; prefer_mxc uses MXC \"when native capabilities and policy allow it\", otherwise keeps the legacy sandbox.",
       'V: the sandbox log says "MXC availability: true" or false; on Windows Server 2025 build 26100 with prefer_mxc, Codex 0.163.0 selected nothing ("Windows sandbox selection: disabled") instead of falling back (codex-config-doctor, which put it to the binary).',
-      "N: a build below the minimum was not available here.",
+      'V: on the windows-latest runner (Windows Server 2025, 10.0.26100; the log said "MXC availability: false") windows.sandbox = "mxc" was logged as "mxc" and the header of codex exec said workspace-write: Codex 0.163.0 did not stop at start (whether a command then runs was not tried).',
+      "N: a Windows 11 below the minimum build was not available here.",
     ],
     fix: ["Update Windows to the minimum build or later, or choose [windows] sandbox = \"unelevated\" (or \"elevated\", for an administrator's setup)."],
     issues: [],
@@ -236,7 +237,7 @@ export const OTHER_PAGES = [
     does: [
       "V: with pwsh.exe first on PATH the shell command line was <that file> -NoProfile -Command ...; with only powershell.exe it was C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -NoProfile -NonInteractive -Command ... (Gemini CLI 0.64.0, a copy of powershell.exe named pwsh.exe stood in for PowerShell 7).",
       "V: a pwsh.exe that was only in %ProgramFiles%\\PowerShell\\7 (off PATH) was not used.",
-      'V: with the PowerShell folder off PATH, run_shell_command answered {"error":"spawn powershell.exe ENOENT"}; the model got that, the answer was printed, and then the process ended with a libuv assertion (`Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), file src\\win\\async.c, line 94`) and exit code 3221226505, in every run (with a PowerShell found it ended with 0).',
+      'V: with the PowerShell folder off PATH, run_shell_command answered {"error":"spawn powershell.exe ENOENT"}; the model got that, the answer was printed, and then, with Node 24.19.0, the process ended with a libuv assertion (`Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), file src\\win\\async.c, line 94`) and exit code 3221226505 (with a PowerShell found it ended with 0; with Node 22.23.3 on the windows-latest runner it ended with 0 in both cases).',
     ],
     fix: ["Put C:\\Windows\\System32\\WindowsPowerShell\\v1.0 on PATH, then open a new terminal."],
     issues: [GEMINI(12678, "Windows always runs in PowerShell even under Git Bash (closed as a duplicate)"), GEMINI(21340, "feat: Add configurable shell executable for run_shell_command on Windows (closed as a duplicate)")],

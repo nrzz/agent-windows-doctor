@@ -116,7 +116,7 @@ test("a pwsh.exe on PATH is started instead, with -NoProfile -Command; __PSLockd
 
 test("with no PowerShell folder on PATH the tool answers spawn powershell.exe ENOENT, and a pwsh.exe in ProgramFiles is not used", { skip: SKIP, timeout: 900000 }, async (t) => {
   const run = await runs.none;
-  // the answer is printed; the process then ends with a libuv assertion (exit code 3221226505, 0xC0000409) on 0.64.0, where it ended with 0 when a PowerShell was found
+  // the answer is printed; the process then ends with a libuv assertion (exit code 3221226505, 0xC0000409) on 0.64.0 with Node 24.19.0, where it ended with 0 when a PowerShell was found; with Node 22.23.3 on the runner it ends with 0
   assert.ok([0, 3221226505].includes(run.r.code), `exit ${run.r.code}: ${run.r.err.slice(0, 400)}`);
   assert.ok(run.r.result && run.r.result.response === "PROBE-DONE", "the answer was printed");
   assert.match(run.results, /spawn powershell\.exe ENOENT/, run.results);
