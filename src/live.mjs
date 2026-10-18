@@ -75,7 +75,9 @@ export function liveEnv(sys, world, extra = {}) {
 }
 
 function killTree(child) {
-  try { spawnSync("taskkill", ["/pid", String(child.pid), "/T", "/F"], { windowsHide: true }); } catch { try { child.kill("SIGKILL"); } catch { /* gone */ } }
+  // on Windows the process and what it started (a .cmd shim runs cmd.exe, which runs node); then the process itself, on every system
+  if (process.platform === "win32") { try { spawnSync("taskkill", ["/pid", String(child.pid), "/T", "/F"], { windowsHide: true }); } catch { /* the kill below follows */ } }
+  try { child.kill("SIGKILL"); } catch { /* gone */ }
 }
 
 /** Starts a binary (an .exe, or an npm .cmd shim through cmd.exe) and waits: { code, out, err, timedOut, error }. The guard has passed before this is called. */
