@@ -6,7 +6,7 @@
 // the execution policy of Claude Code's PowerShell, the version resources of src/versions.mjs and Get-AppxPackage (src/check.mjs).
 import { fakeMachine, SYSTEM_FILES } from "./machine.mjs";
 import { collectWindows } from "../src/check.mjs";
-import { fileUserEnv, REAL_KEY } from "../src/winenv.mjs";
+import { REAL_KEY, regUserEnv } from "../src/winenv.mjs";
 
 export const HOME = "C:\\Users\\me";
 export const PROJECT = "C:\\work\\shop";
@@ -94,8 +94,8 @@ export function winMachine(o = {}) {
 }
 
 /** collectWindows on a machine, with the user environment layer of that machine (a file it holds, or the registry). */
-export function collect(sys, project = PROJECT, agents) {
-  return collectWindows(sys, { project, userEnv: fileUserEnv(sys, "C:\\no-user-env.json"), agents });
+export function collect(sys, project = PROJECT, agents, explicit = false) {
+  return collectWindows(sys, { project, userEnv: regUserEnv(sys), agents, explicit });
 }
 
 export const idsOf = (facts) => facts.findings.map((f) => f.id);

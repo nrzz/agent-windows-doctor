@@ -8,6 +8,7 @@ import { collectWindows, collectWsl, kindOf, notApplicable, selectAgents, codexD
 import { AGENT_IDS, findAgents } from "./inventory.mjs";
 import { liveAll } from "./live.mjs";
 import { IDS, listPages, nearIds, pageFor } from "./explain.mjs";
+import { SEVERITY_ORDER, countFindings, liveFindings } from "./findings.mjs";
 import { agentsJson, agentsText, checkJson, checkMarkdown, checkText, explainJson, explainListJson, explainListText, explainText } from "./report.mjs";
 
 export const HELP = `Usage: agent-windows-doctor <command> [options]
@@ -162,7 +163,7 @@ export async function main(argv, io = {}) {
       const machineNpm = sys.run("cmd.exe", ["/d", "/s", "/c", "\"npm config get prefix\""], { verbatim: true, env: { ...sys.env, npm_config_update_notifier: "false", npm_config_logs_max: "0" }, timeout: 30000 });
       const npmPrefix = !machineNpm.error && machineNpm.status === 0 ? (String(machineNpm.stdout).split(/\r?\n/).find((l) => l.trim()) || "").trim() || null : null;
       const inventory = findAgents(sys, { agents, ctx: { npmPrefix, codexApp: agents.includes("codex") ? codexDesktopApp(sys) : null } });
-      emit(agentsJson({ platform: "win32", agents, inventory }), agentsText({ platform: "win32", agents, inventory }));
+      emit(agentsJson({ platform: "win32", agents, asked: agents, inventory }), agentsText({ platform: "win32", agents, asked: agents, inventory }));
       return 0;
     }
 
@@ -182,11 +183,13 @@ export async function main(argv, io = {}) {
       if (o.json) stdout.write(`${JSON.stringify({ ok: false, refused: msg, platform: sys.platform }, null, 2)}\n`); else stderr.write(`${msg}\n`);
       return 1;
     }
-    const facts = kind === "windows" ? collectWindows(sys, { project, userEnv: pickUserEnv(io, sys), agents }) : collectWsl(sys, { project, agents });
+    const facts = kind === "windows" ? collectWindows(sys, { project, userEnv: pickUserEnv(io, sys), agents, explicit: o.agent !== undefined && o.agent !== "all" }) : collectWsl(sys, { project, agents });
     let liveFailed = false;
     if (o.live) {
       facts.live = await liveAll(sys, { facts, paths: { claude: o.claude, codex: o.codex, gemini: o.gemini, copilot: o.copilot }, runners: io.liveRunner || {}, tmpdir: io.tempDir || sys.tmpdir, makeDir: makeTempDir, removeDir: removeTempDir });
       liveFailed = !facts.live.ok;
+      facts.findings = [...facts.findings, ...liveFindings(facts.live)].sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]);
+      facts.counts = countFindings(facts.findings);
     }
     if (o.markdown) { stdout.write(checkMarkdown(facts)); return 0; }
     emit(checkJson(facts), checkText(facts));

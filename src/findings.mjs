@@ -72,10 +72,14 @@ function inventoryFindings(agent, facts) {
       }));
     }
   }
-  for (const e of onPath) {
-    if (e.kind === "program" && !e.skipped && e.version === null && e.note) {
-      out.push(f(`${agent}.no-version`, "warning", `${e.path} ${e.note}.`, { effect: `That ${cmd} does not run here.`, fix: "Reinstall it, or remove it from PATH." }));
-    }
+  return out;
+}
+
+/** The findings that only a live run can make: a program that was asked for its version and did not answer. */
+export function liveFindings(live) {
+  const out = [];
+  for (const [id, r] of Object.entries((live && live.agents) || {})) {
+    if (r.binary && r.binary.note) out.push(f(`${id}.no-version`, "warning", `${r.binary.path} ${r.binary.note}.`, { effect: `That ${COMMANDS[id][0]} does not run here.`, fix: "Reinstall it, or remove it from PATH." }));
   }
   return out;
 }
@@ -490,3 +494,21 @@ export function countFindings(findings) {
   for (const x of findings) c[x.severity]++;
   return c;
 }
+
+// Every id that `check` can emit, agent by agent, in the order of the explain pages and of the README's table. test/findings.test.mjs puts a machine to
+// each of them, and test/explain.test.mjs and test/readme.test.mjs hold the pages and the table to this list.
+const GENERIC = (a) => [`${a}.not-on-path`, `${a}.multiple`, `${a}.older-first`, `${a}.no-version`];
+const HOOKS = (a) => [`${a}.hook-bash-syntax`, ...(a === "claude" ? [] : [`${a}.hook-ps1-policy`]), `${a}.hook-extensionless`];
+export const FINDING_IDS = [
+  "claude.no-shell-tool", "claude.git-bash-not-found", "claude.git-bash-path-ignored", "claude.git-bash-path-project-settings", "claude.git-bash-broken",
+  "claude.powershell-variable-unread", "claude.default-shell-scope", "claude.powershell-5", "claude.wsl-bash-on-path", "claude.launcher-first",
+  "claude.not-on-path", "claude.multiple", "claude.older-first", "claude.no-version", "claude.node-for-npm",
+  "claude.long-paths", "claude.autocrlf", "claude.execution-policy", "claude.code-page", "claude.index-lock",
+  "claude.user-env-not-in-process", "claude.user-env-differs", "claude.process-env-not-in-user",
+  "claude.wsl-no-distro", "claude.wsl-windows-claude", "claude.wsl-config-on-mnt", "claude.wsl-inherits-windows",
+  ...HOOKS("claude"),
+  ...GENERIC("codex"), "codex.node-for-npm", "codex.sandbox-none", "codex.mxc-unavailable", "codex.shell-path-ignored", "codex.home-wsl", "codex.hook-exit-2", "codex.hook-trust", ...HOOKS("codex"),
+  ...GENERIC("gemini"), "gemini.node-for-npm", "gemini.powershell-not-on-path", "gemini.constrained-language-mode", "gemini.node-pty-missing", ...HOOKS("gemini"),
+  ...GENERIC("copilot"), "copilot.node-for-npm", "copilot.powershell-not-on-path", "copilot.pwsh-missing", "copilot.hook-bash-only", "copilot.claude-hooks", ...HOOKS("copilot"),
+  ...GENERIC("cursor"), "cursor.launcher-quotes", "cursor.launcher-no-version", "cursor.msystem", "cursor.hook-stdin-bom", ...HOOKS("cursor"),
+];

@@ -90,12 +90,14 @@ function startBinary(binary, args, { cwd, env, root }) {
   });
 }
 
-/** `binary --version` in the live world: the version the program prints for itself, or null. */
-async function askVersion(sys, binary, world) {
+/** `binary --version` in the live world: { version, note }: the version the program prints for itself, or null with what happened. */
+export async function askVersion(sys, binary, world) {
   const env = liveEnv(sys, world, { DISABLE_AUTOUPDATER: "1", DISABLE_TELEMETRY: "1", COPILOT_AUTO_UPDATE: "false", GEMINI_CLI_NO_RELAUNCH: "1", CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1" });
   const r = await startBinary(binary, ["--version"], { cwd: world.work, env, root: world.base });
+  if (r.error) return { version: null, note: `could not start (${r.error.code || r.error.message})` };
   const m = /(\d+\.\d+\.\d+(?:[-.][0-9A-Za-z.]+)?)/.exec(r.out || "");
-  return r.code === 0 && m ? m[1].replace(/\.$/, "") : null;
+  if (r.code === 0 && m) return { version: m[1].replace(/\.$/, ""), note: null };
+  return { version: null, note: r.timedOut ? "no answer in 120 seconds" : `did not print a version (exit ${r.code}${String(r.err || "").trim() ? `: ${String(r.err).trim().split(/\r?\n/)[0].slice(0, 80)}` : ""})` };
 }
 
 // ---- the fake APIs -------------------------------------------------------------------------------------------------------------
@@ -410,8 +412,8 @@ export async function liveAll(sys, { facts, paths = {}, runners = {}, tmpdir, ma
     const base = injected ? tmpdir : makeDir(tmpdir);
     try {
       const world = injected ? { base, home: base, work: base, debugFile: path.join(base, "debug.log") } : makeLiveWorld(base);
-      const asked = injected ? null : await askVersion(sys, pick.path, world);
-      const binary = { path: pick.path, version: pick.entry ? pick.entry.version : null, asked, source: pick.source };
+      const asked = injected ? { version: null, note: null } : await askVersion(sys, pick.path, world);
+      const binary = { path: pick.path, version: pick.entry ? pick.entry.version : null, asked: asked.version, note: asked.note, source: pick.source };
       const r = id === "claude"
         ? await proveClaude(sys, { binary: pick.path, world, facts: facts.claude.settingsFacts, runner: runners.claude })
         : await proveShellOf(id, sys, { binary: pick.path, world, machine: facts.machine, runner: runners[id] });

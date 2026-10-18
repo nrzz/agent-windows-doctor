@@ -85,7 +85,7 @@ function versionText(e) {
 
 export function inventoryLines(f, { title = "Every agent on this machine" } = {}) {
   const out = [title];
-  for (const id of f.agents) {
+  for (const id of f.asked || f.agents) {
     const a = f.inventory.agents[id];
     out.push(`  ${a.label}`);
     if (!a.entries.length) out.push("    none found on PATH or in the places the installers use");
@@ -103,6 +103,7 @@ export function inventoryLines(f, { title = "Every agent on this machine" } = {}
 
 function shellLines(f) {
   const out = ["The shell each agent gives the model"];
+  if (!f.agents.length) out.push("  no agent found: nothing to say");
   for (const id of f.agents) {
     const label = AGENT_LABEL[id];
     if (id === "claude") {
@@ -131,6 +132,7 @@ function shellLines(f) {
 
 function hookLines(f) {
   const out = ["Hooks on Windows"];
+  if (!f.agents.length) out.push("  no agent found: nothing to say");
   for (const id of f.agents) {
     const h = f.hooks[id];
     out.push(`  ${AGENT_LABEL[id]}`);
@@ -202,7 +204,7 @@ function windowsText(f) {
   out.push(header("what the coding agents get on this Windows machine"));
   out.push(`project   ${f.project}`);
   out.push(`system    ${f.system.os} (${f.system.release}), ${f.system.arch}`);
-  out.push(`agents    ${shortList(f.agents.map((a) => AGENT_LABEL[a]))}`);
+  out.push(`agents    ${f.agents.length ? shortList(f.agents.map((a) => AGENT_LABEL[a])) : "none found on this machine"}${f.agents.length && f.notFound.length ? ` (not found: ${shortList(f.notFound.map((a) => AGENT_LABEL[a]))})` : ""}`);
   out.push("");
   out.push(...machineLines(f));
   out.push("");

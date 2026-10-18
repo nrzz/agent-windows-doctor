@@ -17,7 +17,7 @@ export function parseCursorCmd(text) {
   let line = null;
   for (const l of t.split(/\r?\n/)) {
     if (/^\s*(rem\b|::)/i.test(l)) continue;
-    if (/powershell(\.exe)?\b/i.test(l)) { line = l.trim(); break; }
+    if (/\b(powershell|pwsh)(\.exe)?\b/i.test(l)) { line = l.trim(); break; }
   }
   if (!line) return { delayedExpansion, powershell: null, hardcoded51: false, flags: null, forwardsArgs: false };
   const m = /^("[^"]+"|\S+)\s*(.*)$/.exec(line);

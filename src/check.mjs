@@ -42,14 +42,17 @@ export function selectAgents(value) {
 }
 
 /** The Windows setup. `dir` is a throwaway folder (for --live). */
-export function collectWindows(sys, { project, userEnv, agents = AGENT_IDS }) {
-  const sel = AGENT_IDS.filter((a) => agents.includes(a));
+export function collectWindows(sys, { project, userEnv, agents = AGENT_IDS, explicit = false }) {
+  const asked = AGENT_IDS.filter((a) => agents.includes(a));
   const settings = loadSettingsFiles(sys, { project });
   const settingsFacts = shellFacts(settings);
   const cwd = settings.project;
   const machine = collectMachine(sys, { cwd });
-  const ctx = { npmPrefix: machine.node.npmPrefix, codexApp: sel.includes("codex") ? codexDesktopApp(sys) : null };
-  const inventory = findAgents(sys, { agents: sel, ctx });
+  const ctx = { npmPrefix: machine.node.npmPrefix, codexApp: asked.includes("codex") ? codexDesktopApp(sys) : null };
+  const inventory = findAgents(sys, { agents: asked, ctx });
+  // the agents this report is about: the ones found on the machine, or every one that --agent names
+  const found = asked.filter((a) => inventory.agents[a].entries.length > 0);
+  const sel = explicit ? asked : found;
 
   const shells = {};
   const claude = {};
@@ -101,6 +104,8 @@ export function collectWindows(sys, { project, userEnv, agents = AGENT_IDS }) {
     kind: "windows",
     project: cwd,
     agents: sel,
+    asked,
+    notFound: asked.filter((a) => !found.includes(a)),
     system: { os: sys.osVersion, release: sys.release, arch: sys.arch },
     machine,
     inventory,
