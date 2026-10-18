@@ -125,7 +125,7 @@ test("the number of tests the README states is the runner's total minus the help
   const passed = Number((/^(?:# |ℹ )pass (\d+)$/m.exec(r.stdout) || [])[1]) + 1 - helpers;
   assert.equal(passed + skipped, counted, "every test passes or is skipped");
   if (process.platform === "win32") assert.ok(readme.includes(`On Windows ${passed} pass and ${skipped} are skipped`), `the README says "On Windows ${passed} pass and ${skipped} are skipped"`);
-  else assert.ok(skipped > 0 && readme.includes("On Linux and macOS"), "fewer pass off Windows: the checks that read the real Windows are skipped");
+  else assert.ok(skipped > 0 && readme.includes(`On Linux and macOS ${passed} pass and ${skipped} are skipped`), `the README says "On Linux and macOS ${passed} pass and ${skipped} are skipped" (fewer pass off Windows: the checks that read the real Windows are skipped)`);
 });
 
 // ---- the table of findings ---------------------------------------------------------------------------------------------------------------
