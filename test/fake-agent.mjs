@@ -20,6 +20,7 @@ if (config.dump) {
   const keep = ["HOME", "USERPROFILE", "APPDATA", "LOCALAPPDATA", "CODEX_HOME", "COPILOT_HOME", "CLAUDE_CONFIG_DIR", "GEMINI_CLI_HOME", "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY", "CLAUDE_CODE_GIT_BASH_PATH", "CLAUDE_CODE_USE_POWERSHELL_TOOL", "ANTHROPIC_API_KEY", "ANTHROPIC_BASE_URL", "FAKE_API_KEY"];
   fs.writeFileSync(config.dump, JSON.stringify({ values: Object.fromEntries(keep.filter((k) => env[k] !== undefined).map((k) => [k, env[k]])), names: Object.keys(env).sort(), cwd: process.cwd(), args }));
 }
+if (config.hang) { setInterval(() => {}, 1000); await new Promise(() => {}); }
 if (args.includes("--version")) {
   process.stdout.write(`${config.version === undefined ? "9.9.9" : config.version}\n`);
   process.exit(config.versionExit || 0);

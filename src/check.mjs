@@ -10,7 +10,7 @@ import { AGENT_IDS, findAgents } from "./inventory.mjs";
 import { collectMachine } from "./machine.mjs";
 import { shellFor } from "./shells.mjs";
 import { nodeWants, ptyOf, readCursorLauncher } from "./agentfacts.mjs";
-import { codexOnWindows, codexHome, readCodexLayers } from "./codexwin.mjs";
+import { codexOnWindows, readCodexLayers } from "./codexwin.mjs";
 import { judgeHooks, readHooks } from "./hooks.mjs";
 import { countFindings, windowsFindings, wslFindings } from "./findings.mjs";
 
@@ -123,6 +123,12 @@ export function collectWindows(sys, { project, userEnv, agents = AGENT_IDS, expl
   return facts;
 }
 
+/** Where Codex CLI would keep its files inside this distribution: CODEX_HOME, or ~/.codex. */
+function wslCodexHome(sys) {
+  const given = sys.getEnv("CODEX_HOME");
+  return { dir: given || `${sys.home}/.codex`, source: given ? "CODEX_HOME" : "default" };
+}
+
 /** The WSL side, from inside a distribution. */
 export function collectWsl(sys, { project, agents = AGENT_IDS }) {
   const inside = insideWsl(sys);
@@ -143,7 +149,7 @@ export function collectWsl(sys, { project, agents = AGENT_IDS }) {
     system: { os: sys.osVersion, release: sys.release, arch: sys.arch, wsl: inside.version },
     inside, settings: { configDir: settings.configDir, configSource: settings.configSource },
     inventory, locations, wslInherits,
-    codexHome: sel.includes("codex") ? { ...(() => { const h = sys.getEnv("CODEX_HOME"); return { dir: h || `${sys.home}/.codex`, source: h ? "CODEX_HOME" : "default" }; })() } : null,
+    codexHome: sel.includes("codex") ? wslCodexHome(sys) : null,
   };
   facts.findings = wslFindings(facts);
   facts.counts = countFindings(facts.findings);
@@ -161,5 +167,3 @@ export function kindOf(sys) {
   if (insideWsl(sys).inside) return "wsl";
   return "other";
 }
-
-export { codexHome };

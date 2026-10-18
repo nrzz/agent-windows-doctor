@@ -268,6 +268,8 @@ test("askVersion: the version the program prints for itself, or what happened", 
   assert.match(fails.note, /^did not print a version \(exit 3\)$/);
   const gone = await askVersion(sys, path.join(w.base, "nope", "codex.exe"), w.world);
   assert.match(gone.note, /^could not start \(/);
+  const hangs = await askVersion(sys, shim(w.bin, "gemini", { hang: true }), w.world, { timeout: 1500 });
+  assert.deepEqual(hangs, { version: null, note: "no answer in 1.5 seconds" });
 });
 
 test("liveAll on this machine, through stand-ins on PATH: every agent found is run in its own throwaway folder, which is removed afterwards", { skip: !IS_WIN && "the pretend machine and the host would disagree on PATH" }, async () => {

@@ -55,7 +55,7 @@ function inventoryPages(agent) {
       issues: [],
     },
     {
-      id: `${agent}.no-version`, basis: "verified", title: `A ${cmd} on PATH does not print a version`,
+      id: `${agent}.no-version`, basis: "verified", title: `The ${label} command on PATH does not print a version`,
       means: "With --live, the program was asked for --version and did not answer with one, or does not run.",
       does: ["V: the line says what happened: it could not start, did not answer in 30 seconds, or printed no version."],
       fix: ["Reinstall it, or take its folder off PATH."],

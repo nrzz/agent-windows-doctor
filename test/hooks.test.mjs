@@ -2,7 +2,7 @@
 import "./helpers.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
-import { HOME, PROJECT, winMachine, withNpm } from "./win-machine.mjs";
+import { HOME, PROJECT, winMachine } from "./win-machine.mjs";
 import { analyzeCommand, bashReasons, claudeHooks, codexHooks, copilotHooks, cursorHooks, geminiHooks, hookRunner, judgeHooks, readHooks, tokenize } from "../src/hooks.mjs";
 
 const ids = (command, edition) => bashReasons(command, { edition }).map((r) => r.id);

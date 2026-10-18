@@ -4,7 +4,7 @@ import "./helpers.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { fakeMachine } from "./machine.mjs";
-import { HOME, PROJECT, collect, npmInstall, winMachine, withNpm } from "./win-machine.mjs";
+import { HOME, collect, winMachine, withNpm } from "./win-machine.mjs";
 import { collectWsl, notApplicable } from "../src/check.mjs";
 import { MARKDOWN_LINE, MARKDOWN_MAX_FINDINGS, NOTHING, agentsJson, agentsText, checkJson, checkMarkdown, checkText, explainListJson } from "../src/report.mjs";
 import { listPages } from "../src/explain.mjs";
@@ -169,5 +169,4 @@ test("plain words: no emoji and none of the words the house does not use, in any
   const all = [checkText(f), checkMarkdown(f), JSON.stringify(checkJson(f)), JSON.stringify(explainListJson(listPages()))].join("\n");
   assert.ok(!/\p{Extended_Pictographic}/u.test(all));
   assert.ok(!/\b(simply|easily|blazing|seamless|powerful|amazing|revolutionary)\b/i.test(all));
-  void npmInstall; void PROJECT;
 });

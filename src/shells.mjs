@@ -33,7 +33,7 @@ export function shellFor(agent, { machine, cursor } = {}) {
     return {
       agent, tool: "exec_command", state: path ? "ok" : "missing",
       shell: path ? { label: edition(path), path, core: Boolean(pwsh) } : null,
-      args: pwsh ? "-Command" : "-Command",
+      args: "-Command",
       how: [
         pwsh ? `the first pwsh.exe on PATH, by its full path` : `no pwsh.exe on PATH, so Windows PowerShell 5.1 by its full path under %SystemRoot% (PATH is not used for it)`,
         "a pwsh.exe that is only in %ProgramFiles%\\PowerShell\\7, off PATH, is not used",

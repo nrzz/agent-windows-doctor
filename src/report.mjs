@@ -3,7 +3,6 @@
 import { VERSION } from "./version.mjs";
 import { AGENT_IDS, AGENT_LABEL, COMMANDS, ORIGIN_TEXT } from "./inventory.mjs";
 import { HOW, GIT_BASH_VAR } from "./claude-shell.mjs";
-import { MXC_TEXT } from "./machine.mjs";
 
 const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 const pad = (s, n) => String(s) + " ".repeat(Math.max(0, n - String(s).length));

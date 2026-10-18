@@ -3,9 +3,9 @@
 import "./helpers.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
-import { IS_WIN, run, runCli, world } from "./helpers.mjs";
+import { run, runCli, world } from "./helpers.mjs";
 import { fakeMachine } from "./machine.mjs";
-import { HOME, PROJECT, npmInstall, winMachine, withNpm } from "./win-machine.mjs";
+import { HOME, npmInstall, winMachine, withNpm } from "./win-machine.mjs";
 import { HELP, parseArgs } from "../src/cli.mjs";
 import { VERSION } from "../src/version.mjs";
 import { IDS } from "../src/explain.mjs";
@@ -240,5 +240,4 @@ test("the real command line in a child process: --version, --help, a usage error
   assert.equal(JSON.parse(e.out).id, "claude.long-paths");
   const pipe = runCli(["explain", "--list"], { cwd: w.work, env: w.env });
   assert.equal(pipe.code, 0);
-  void IS_WIN; void PROJECT;
 });

@@ -12,7 +12,6 @@
 //     codex-config-doctor, which put it to the binary.
 import * as W from "./winpath.mjs";
 import { parseToml } from "./toml.mjs";
-import { mxcSupport } from "./machine.mjs";
 
 const isObject = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
 

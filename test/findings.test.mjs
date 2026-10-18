@@ -3,7 +3,7 @@
 import "./helpers.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
-import { fakeMachine, SYSTEM_PATH } from "./machine.mjs";
+import { fakeMachine } from "./machine.mjs";
 import { HOME, POLICY, PROJECT, collect as collectRaw, idsOf, npmInstall, utf16, winMachine, withNpm } from "./win-machine.mjs";
 import { collectWsl as collectWslRaw } from "../src/check.mjs";
 import { FINDING_IDS, SEVERITY_ORDER, liveFindings } from "../src/findings.mjs";

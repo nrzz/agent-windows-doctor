@@ -26,6 +26,7 @@ import { makeLiveWorld, readDebugLog, writeClaudeWorld, writeCodexWorld, writeGe
 export const DEAD_PROXY = "http://127.0.0.1:9";
 export const NO_PROXY = "127.0.0.1,localhost";
 const TIMEOUT_MS = 120000;
+const VERSION_TIMEOUT_MS = 30000;
 export const HOME_VARS = ["HOME", "USERPROFILE", "LOCALAPPDATA", "APPDATA", "CODEX_HOME", "COPILOT_HOME", "CLAUDE_CONFIG_DIR", "GEMINI_CLI_HOME"];
 const PROXY_VARS = ["HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY"];
 // the variables of any agent: none of them reaches a live run
@@ -78,7 +79,7 @@ function killTree(child) {
 }
 
 /** Starts a binary (an .exe, or an npm .cmd shim through cmd.exe) and waits: { code, out, err, timedOut, error }. The guard has passed before this is called. */
-function startBinary(binary, args, { cwd, env, root }) {
+function startBinary(binary, args, { cwd, env, root, timeout = TIMEOUT_MS }) {
   assertSandboxed(env, root);
   return new Promise((resolve) => {
     const shim = /\.(cmd|bat)$/i.test(binary);
@@ -93,19 +94,19 @@ function startBinary(binary, args, { cwd, env, root }) {
     child.stdout.on("data", (d) => { out += d; });
     child.stderr.on("data", (d) => { err += d; });
     let timedOut = false;
-    const timer = setTimeout(() => { timedOut = true; killTree(child); }, TIMEOUT_MS);
+    const timer = setTimeout(() => { timedOut = true; killTree(child); }, timeout);
     child.on("close", (code) => { clearTimeout(timer); resolve({ code: timedOut ? null : code, out, err, timedOut, error }); });
   });
 }
 
 /** `binary --version` in the live world: { version, note }: the version the program prints for itself, or null with what happened. */
-export async function askVersion(sys, binary, world) {
+export async function askVersion(sys, binary, world, { timeout = VERSION_TIMEOUT_MS } = {}) {
   const env = liveEnv(sys, world, { DISABLE_AUTOUPDATER: "1", DISABLE_TELEMETRY: "1", COPILOT_AUTO_UPDATE: "false", GEMINI_CLI_NO_RELAUNCH: "1", CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1" });
-  const r = await startBinary(binary, ["--version"], { cwd: world.work, env, root: world.base });
+  const r = await startBinary(binary, ["--version"], { cwd: world.work, env, root: world.base, timeout });
   if (r.error) return { version: null, note: `could not start (${r.error.code || r.error.message})` };
   const m = /(\d+\.\d+\.\d+(?:[-.][0-9A-Za-z.]+)?)/.exec(r.out || "");
   if (r.code === 0 && m) return { version: m[1].replace(/\.$/, ""), note: null };
-  return { version: null, note: r.timedOut ? "no answer in 120 seconds" : `did not print a version (exit ${r.code}${String(r.err || "").trim() ? `: ${String(r.err).trim().split(/\r?\n/)[0].slice(0, 80)}` : ""})` };
+  return { version: null, note: r.timedOut ? `no answer in ${timeout / 1000} seconds` : `did not print a version (exit ${r.code}${String(r.err || "").trim() ? `: ${String(r.err).trim().split(/\r?\n/)[0].slice(0, 80)}` : ""})` };
 }
 
 // ---- the fake APIs -------------------------------------------------------------------------------------------------------------
