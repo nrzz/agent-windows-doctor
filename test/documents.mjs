@@ -15,7 +15,7 @@ const shellRun = (program, o = {}) => async () => ({ ran: true, exitCode: 0, tim
 const PS51 = `${PS_DIR}\\powershell.exe`;
 
 /** A Windows machine with the four npm agents, the Cursor CLI launcher, and a user whose setup is wrong in every way that the tool has a finding for. */
-function busy() {
+export function busyMachine() {
   const cursor = `${LOCAL}\\cursor-agent`;
   const files = [`${cursor}\\agent.cmd`, `${cursor}\\cursor-agent.cmd`, `${cursor}\\cursor-agent.ps1`, `${HOME}\\.local\\bin\\claude.exe`, ...E_GIT, "C:\\Windows\\System32\\bash.exe"];
   const texts = {
@@ -48,7 +48,7 @@ export async function documents() {
   // check on Windows: no agent, a clean machine with the four, a machine that is wrong in every way, one agent named, one named and not found
   docs.check.push(await j(["check"], { sys: winMachine() }));
   docs.check.push(await j(["check"], { sys: four() }));
-  docs.check.push(await j(["check", "--project", PROJECT], { sys: busy() }));
+  docs.check.push(await j(["check", "--project", PROJECT], { sys: busyMachine() }));
   docs.check.push(await j(["check", "--agent", "codex"], { sys: four() }));
   docs.check.push(await j(["check", "--agent", "cursor"], { sys: four() }));
   // check --live: proved, a difference, an error, an agent skipped (not found; the Cursor CLI), a path that is not a file
@@ -66,7 +66,7 @@ export async function documents() {
   docs.check.push(await j(["check", "--live"], { sys: fakeMachine({ platform: "linux" }) }));
   // agents
   docs.agents.push(await j(["agents"], { sys: winMachine() }));
-  docs.agents.push(await j(["agents"], { sys: busy() }));
+  docs.agents.push(await j(["agents"], { sys: busyMachine() }));
   docs.agents.push(await j(["agents", "--agent", "copilot"], { sys: four() }));
   docs.agents.push(await j(["agents"], { sys: fakeMachine({ platform: "darwin" }) }));
   // explain

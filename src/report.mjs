@@ -215,10 +215,10 @@ function windowsText(f) {
   out.push(...inventoryLines(f));
   out.push("");
   out.push(...shellLines(f));
-  if (f.live) { out.push(""); out.push(...liveLines(f.live)); }
   out.push("");
   out.push(...hookLines(f));
   if (f.codex) { out.push(""); out.push(...codexLines(f)); }
+  if (f.live) { out.push(""); out.push(...liveLines(f.live)); }
   if (f.claude.settings) {
     const mf = f.claude.settings.files.filter((s) => s.exists);
     out.push("");

@@ -1,5 +1,5 @@
 // The claims of the Claude explain pages that say "verified", and the rows of test/shell-table.mjs that stand for each of them. test/e2e-claude.test.mjs puts
-// these rows to the real binary (one row per restated claim; the full table of 129 cases is put to the binary in claude-windows-doctor), and test/shell.test.mjs
+// these rows to the real binary (one row per restated claim; the full table of 129 cases is put to the binary in claude-windows-doctor), and test/claude-shell.test.mjs
 // puts every row of the table to the prediction on a pretend machine.
 export const CLAIMS = {
   "claude.no-shell-tool": ["no-git-ps-0", "no-git-settings-project-0", "default-git-ps-0"],

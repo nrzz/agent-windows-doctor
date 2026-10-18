@@ -1,6 +1,6 @@
 // The shell each agent gives the model on Windows, and how it chose. Claude Code's is claude-windows-doctor's prediction (src/claude-shell.mjs, 129
 // cases put to the binary there). The others, put to the real binaries on Windows 11 (Codex CLI 0.163.0, Gemini CLI 0.64.0, GitHub Copilot CLI
-// 1.0.98; test/e2e-shell.test.mjs):
+// 1.0.98; test/e2e-codex.test.mjs, test/e2e-gemini.test.mjs and test/e2e-copilot.test.mjs):
 //   * Codex CLI starts the first pwsh.exe on PATH, by its full path, and else Windows PowerShell 5.1 by its full path under %SystemRoot%: with a
 //     pwsh.exe only in %ProgramFiles%\PowerShell\7 (not on PATH) it ran powershell.exe, and with the PowerShell folder off PATH it still found
 //     powershell.exe. It has no key to choose the shell: windows.shell_path (proposed in #16579) is "unknown configuration field" under

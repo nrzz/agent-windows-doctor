@@ -1,7 +1,8 @@
 // Which shell tools will Claude Code give the model on Windows, and why. Every rule here is one that the real binary was put to
-// (Claude Code 2.1.295 and 2.1.299 on Windows 11, and the newest release on windows-latest in CI): test/shell-table.mjs holds the
-// cases, test/e2e-shell.test.mjs runs each of them against the binary through a fake Messages API and reads the tools of the
-// first request, and test/shell.test.mjs holds `predictShell` to the same table on a pretend machine.
+// (claude-windows-doctor put the whole table to Claude Code 2.1.295 and 2.1.299 on Windows 11, and to the newest release on windows-latest in CI):
+// test/shell-table.mjs holds the cases, test/claude-shell.test.mjs holds `predictShell` to all of them on a pretend machine, and
+// test/e2e-claude.test.mjs puts one row for each claim an explain page restates to the binary through a fake Messages API and reads the tools of
+// the first request.
 //
 // What was seen:
 //   * Git Bash is looked for in this order, and the first hit wins:

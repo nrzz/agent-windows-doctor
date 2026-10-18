@@ -185,6 +185,11 @@ test("runCodex, runGemini and runCopilot: the command line that the PowerShell p
   assert.deepEqual([codex.ran, codex.exitCode, codex.program, codex.requests], [true, 0, POWERSHELL, 2]);
   assert.match(codex.line, /-Command/);
   assert.match(fs.readFileSync(path.join(w.world.codex, "config.toml"), "utf8"), /base_url = "http:\/\/127\.0\.0\.1:\d+\/v1"/, "Codex got a config that names the fake API");
+  // Codex prints each backslash of the path twice in the command_execution item: the line is kept as it printed it, the program is the path
+  const w1b = newWorld();
+  const doubled = await runCodex(hostSys(w1b.world), { binary: shim(w1b.bin, "codex", { shellLine: `"${POWERSHELL.replace(/\\/g, "\\\\")}" -Command x` }), world: w1b.world });
+  assert.equal(doubled.program, POWERSHELL);
+  assert.ok(doubled.line.includes("Windows\\\\System32"), doubled.line);
 
   const w2 = newWorld();
   const gemini = await runGemini(hostSys(w2.world), { binary: shim(w2.bin, "gemini", { shellLine: `${POWERSHELL} -NoProfile -NonInteractive -Command [Environment]::CommandLine` }), world: w2.world });

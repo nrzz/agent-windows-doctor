@@ -16,7 +16,7 @@
 //   sys.where(name, options)              Windows' where.exe: the lines it prints, [] for no match, null when it cannot run
 //   sys.now()                             the clock, in ms
 //
-// The few programs that ship with Windows (reg, where, cmd, chcp, tasklist, setx, powershell, wsl) are started by their full path
+// The few programs that ship with Windows (reg, where, cmd, chcp, tasklist, powershell, wsl) are started by their full path
 // under %SystemRoot%: a bare name is looked for in the working folder first, and the folder a person stands in can hold anything.
 // (programPath is claude-relocate's, from src/spawn.mjs there.)
 import fs from "node:fs";
@@ -29,7 +29,6 @@ const WINDOWS_PROGRAMS = {
   cmd: ["System32", "cmd.exe"],
   reg: ["System32", "reg.exe"],
   tasklist: ["System32", "tasklist.exe"],
-  setx: ["System32", "setx.exe"],
   where: ["System32", "where.exe"],
   wsl: ["System32", "wsl.exe"],
   powershell: ["System32", "WindowsPowerShell", "v1.0", "powershell.exe"],

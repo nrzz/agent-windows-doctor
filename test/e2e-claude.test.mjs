@@ -1,7 +1,7 @@
 // Checks against the real Claude Code binary (they run only when E2E_CLAUDE names one, and only on Windows): the claims that the Claude explain pages restate, each put to
 // the binary through a fake Messages API on 127.0.0.1 (no token is spent) in a throwaway world, behind the guard of test/sandbox.mjs.
 // The full table of 129 cases lives in claude-windows-doctor (test/e2e-shell.test.mjs there puts every row to the binary); test/shell-table.mjs holds the same rows and
-// test/shell.test.mjs runs all of them against the prediction on a pretend machine. Here one row stands for each claim the explain pages restate (CLAIMS), so a page
+// test/claude-shell.test.mjs runs all of them against the prediction on a pretend machine. Here one row stands for each claim the explain pages restate (CLAIMS), so a page
 // that says "verified" has a run behind it on the Claude Code of this run. test/e2e-live.test.mjs puts the tool's own `check --live` to the binary.
 import "./helpers.mjs";
 import test from "node:test";

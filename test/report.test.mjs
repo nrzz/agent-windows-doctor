@@ -31,6 +31,18 @@ test("the text of check on Windows has its sections in the order the brief gives
   assert.match(text, /\nHooks on Windows\n {2}Claude Code\n {4}no hook file found\n/);
 });
 
+test("the Live section comes after Codex on Windows, as the brief orders the sections, and before the findings", () => {
+  const f = collect(four());
+  const COMMAND = "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe";
+  f.live = { ok: true, agents: { codex: { ok: true, proved: true, differences: [], binary: { path: "C:\\x\\codex.cmd", version: "0.163.0", asked: "0.163.0", note: null, source: "the first on PATH" }, predicted: { shell: COMMAND, state: "ok" }, actual: { shell: COMMAND, error: null }, run: { line: `"${COMMAND}" -Command x`, exitCode: 0, stderr: "" } } } };
+  const text = checkText(f);
+  const order = [...SECTIONS.slice(0, 5), "Live: the real binaries, through a fake API on 127.0.0.1 (no token spent)", "Findings"];
+  const at = order.map((s) => text.indexOf(`\n${s}`));
+  assert.ok(at.every((i) => i > 0), `all sections are there: ${at}`);
+  assert.deepEqual(at, [...at].sort((a, b) => a - b), "in order");
+  assert.match(text, /\n {2}Codex CLI {12}proved with the real codex 0\.163\.0 \(C:\\x\\codex\.cmd; the first on PATH\):\n/);
+});
+
 test("check on a machine with no agent says so in every section, and the agents that are not found are named", () => {
   const text = checkText(collect(winMachine()));
   assert.match(text, /\nagents {4}none found on this machine\n/);

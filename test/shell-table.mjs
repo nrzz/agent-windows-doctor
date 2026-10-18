@@ -1,7 +1,7 @@
-// The cases the shell prediction is held to. Each one is run twice: test/shell.test.mjs puts it to `predictShell` on a pretend Windows
-// machine (so it runs on every system), and test/e2e-shell.test.mjs builds the same folders on a real disk and puts it to the real
-// claude binary through a fake Messages API, reading the tools of the first request. What a row expects is what the binary did
-// (Claude Code 2.1.295 and 2.1.299 on Windows 11); the README's "What was verified, and how" says how.
+// The cases the shell prediction is held to. Each one is run on a pretend Windows machine by test/claude-shell.test.mjs (so it runs on every
+// system), and the rows that stand for a claim of an explain page (test/claude-claims.mjs) are built on a real disk by test/e2e-claude.test.mjs and put
+// to the real claude binary through a fake Messages API, reading the tools of the first request. What a row expects is what the binary did when
+// claude-windows-doctor put the whole table to it (Claude Code 2.1.295 and 2.1.299 on Windows 11); the README's "What was verified, and how" says how.
 //
 // A row:
 //   id, about     what it is
@@ -162,7 +162,7 @@ export const ROWS = [
   row("default-git-project-var", "the variable in project settings changes nothing", { defaultGit: "present", layouts: ["g1"], settings: { project: { env: { CLAUDE_CODE_GIT_BASH_PATH: G1 } } }, expect: via("program-files") }),
 ];
 
-// The PowerShell tool's edition line, with a fake pwsh.exe, powershell.exe and PowerShell folder (test/e2e-shell.test.mjs reads it from the tool's description)
+// The PowerShell tool's edition line, with a fake pwsh.exe, powershell.exe and PowerShell folder (test/e2e-claude.test.mjs reads it from the tool's description)
 export const EDITIONS = [
   { id: "default", about: "System32's Windows PowerShell only", edition: "Windows PowerShell 5.1 (powershell.exe)", core: false },
   { id: "pwsh-on-path", about: "a pwsh.exe on PATH", files: ["{root}/ps/pwsh.exe"], path: ["{root}/ps"], edition: "PowerShell 7+ (pwsh)", core: true },
