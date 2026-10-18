@@ -188,7 +188,7 @@ export const OTHER_PAGES = [
     id: "codex.shell-path-ignored", basis: "verified", title: "windows.shell_path is set, and Codex does not have that key",
     means: "Codex runs the model's commands in PowerShell on Windows. A windows.shell_path key was proposed to point it at Git Bash or another shell (issue 16579); Codex CLI 0.163.0 does not have it.",
     does: [
-      "V: codex exec --strict-config stopped with `unknown configuration field `windows.shell_path`` for the key in config.toml and for -c windows.shell_path=...; without --strict-config the key was ignored and the command ran as \"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\" -Command '...'.",
+      "V: codex exec --strict-config stopped with `unknown configuration field `windows.shell_path`` for the key in config.toml and for -c windows.shell_path=...; without --strict-config the key was ignored and the command ran in PowerShell: the command_execution item of codex exec --json named \"C:\\\\WINDOWS\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command '...' (it prints each backslash of the path twice).",
       "V: `shell`, `windows.shell` and `windows.default_shell` are unknown configuration fields as well; `features.powershell_shell_version` is a feature flag (under development).",
       "D: the configuration reference lists windows.sandbox and, in requirements.toml, windows.allowed_sandbox_implementations and windows.allow_mxc under windows; no key names a shell.",
     ],

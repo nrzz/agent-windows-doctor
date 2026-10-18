@@ -41,6 +41,10 @@ test("check on a machine with no agent says so in every section, and the agents 
   const some = checkText(collect(winMachine(withNpm({}, ["codex"]))));
   assert.match(some, /\nagents {4}Codex CLI \(not found: Claude Code, Gemini CLI, GitHub Copilot CLI, Cursor\)\n/);
   assert.match(some, /\nEvery agent on this machine\n {2}Claude Code\n {4}none found on PATH or in the places the installers use\n {2}Codex CLI\n/);
+  // an agent that --agent names and that is not found is marked once, not listed again as not found
+  const named = checkText(collect(winMachine(withNpm({}, ["codex"])), undefined, ["claude", "codex"], true));
+  assert.match(named, /\nagents {4}Claude Code \(not found\), Codex CLI\n/);
+  assert.doesNotMatch(named, /\(not found: /);
 });
 
 test("the Claude Code block is claude-windows-doctor's: the Bash tool, the PowerShell tool, the three places Git Bash was looked for, defaultShell, whether Git Bash starts", () => {

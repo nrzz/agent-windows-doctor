@@ -63,11 +63,13 @@ function machineLines(f) {
     out.push(`  ${pad(e.label, 17)} ${e.path}  ${what}${e.id === "7" ? `  [${e.how}]` : ""}`);
   }
   if (!m.powershell.editions.some((e) => e.id === "7")) out.push(`  ${pad("PowerShell 7", 17)} not found: no pwsh.exe on PATH, in %ProgramFiles%\\PowerShell\\7, in the Store alias folder or in .dotnet\\tools`);
-  out.push(`  Git for Windows   ${m.gitInstalls.length ? m.gitInstalls.map((g) => g.path).join(", ") : "none found"}${m.git.ok ? `; git ${m.git.version}` : m.git.error ? `; git: ${m.git.error}` : ""}`);
+  // a git that cannot run is said in words, wherever git's answers would have been
+  const gitWhy = m.git.ok ? null : (/ENOENT/.test(m.git.error || "") ? "git is not on PATH" : (m.git.error || "git did not answer"));
+  out.push(`  Git for Windows   ${m.gitInstalls.length ? m.gitInstalls.map((g) => g.path).join(", ") : "none found"}${m.git.ok ? `; git ${m.git.version}` : `; ${gitWhy}`}`);
   if (m.bash.length) m.bash.forEach((b, i) => out.push(`  ${i === 0 ? "bash.exe on PATH  " : "                   "}${i + 1}  ${b.path}  ${b.kind === "git-bash" ? "Git Bash" : b.kind === "wsl-launcher" ? "the WSL launcher (starts the default distribution)" : "another bash"}`));
   else out.push("  bash.exe on PATH  none");
-  out.push(`  long paths        Windows LongPathsEnabled ${m.longPaths.ok ? (m.longPaths.enabled ? "on" : "off") : "?"}; git core.longpaths ${m.git.ok ? (m.git.longpaths ? m.git.longpaths.value : "not set") : "?"}`);
-  out.push(`  line endings      git core.autocrlf ${m.git.ok ? (m.git.autocrlf ? `${m.git.autocrlf.value} (${m.git.autocrlf.origin})` : "not set") : "?"}`);
+  out.push(`  long paths        Windows LongPathsEnabled ${m.longPaths.ok ? (m.longPaths.enabled ? "on" : "off") : "?"}; git core.longpaths ${m.git.ok ? (m.git.longpaths ? m.git.longpaths.value : "not set") : `not read (${gitWhy})`}`);
+  out.push(`  line endings      git core.autocrlf ${m.git.ok ? (m.git.autocrlf ? `${m.git.autocrlf.value} (${m.git.autocrlf.origin})` : "not set") : `not read (${gitWhy})`}`);
   out.push(`  console           code page ${m.codePage.active || "?"}${m.codePage.oem ? `, system OEM ${m.codePage.oem}, ANSI ${m.codePage.ansi || "?"}` : ""}`);
   if (m.wsl.available) m.wsl.distros.forEach((d, i) => out.push(`  ${i === 0 ? "WSL               " : "                   "}${d.isDefault ? "*" : " "} ${pad(d.name, 18)} ${pad(d.state, 10)} WSL ${d.version}${d.internal ? "  (made by another tool, not one to work in)" : ""}`));
   else out.push(`  WSL               none installed${m.wsl.error ? ` (${m.wsl.error})` : ""}`);
@@ -203,7 +205,10 @@ function windowsText(f) {
   out.push(header("what the coding agents get on this Windows machine"));
   out.push(`project   ${f.project}`);
   out.push(`system    ${f.system.os} (${f.system.release}), ${f.system.arch}`);
-  out.push(`agents    ${f.agents.length ? shortList(f.agents.map((a) => AGENT_LABEL[a])) : "none found on this machine"}${f.agents.length && f.notFound.length ? ` (not found: ${shortList(f.notFound.map((a) => AGENT_LABEL[a]))})` : ""}`);
+  // the agents of the report: those found, or those named with --agent (marked when none was found); the other agents that were asked for are listed as not found
+  const named = f.agents.map((a) => `${AGENT_LABEL[a]}${f.notFound.includes(a) ? " (not found)" : ""}`);
+  const missing = f.notFound.filter((a) => !f.agents.includes(a));
+  out.push(`agents    ${named.length ? shortList(named) : "none found on this machine"}${named.length && missing.length ? ` (not found: ${shortList(missing.map((a) => AGENT_LABEL[a]))})` : ""}`);
   out.push("");
   out.push(...machineLines(f));
   out.push("");

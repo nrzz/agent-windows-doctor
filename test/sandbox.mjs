@@ -59,19 +59,23 @@ export const getVar = (env, name) => { const k = Object.keys(env).find((x) => (I
  */
 export function assertSandboxed(env, root) {
   if (!root) throw new Error("guard: no sandbox root to compare the environment with");
+  // a name may be spelled in more than one case in one environment (on a system that tells them apart): every spelling is looked at
+  const spellings = (name) => Object.keys(env).filter((k) => k.toLowerCase() === name.toLowerCase());
   for (const name of HOME_VARS) {
-    const v = getVar(env, name);
-    if (v === undefined || v === "") throw new Error(`guard: ${name} is not set: the agent would use the real folder (refusing to start a binary)`);
-    if (!path.isAbsolute(v) || !isInside(v, root)) throw new Error(`guard: ${name}=${v} is not inside the sandbox ${root} (refusing to start a binary)`);
+    const keys = spellings(name);
+    if (!keys.length || keys.some((k) => env[k] === undefined || env[k] === "")) throw new Error(`guard: ${name} is not set: the agent would use the real folder (refusing to start a binary)`);
+    for (const k of keys) {
+      const v = env[k];
+      if (!path.isAbsolute(v) || !isInside(v, root)) throw new Error(`guard: ${k}=${v} is not inside the sandbox ${root} (refusing to start a binary)`);
+    }
   }
   for (const name of PROXY_VARS) {
-    for (const spelling of [name, name.toLowerCase()]) {
-      const v = env[spelling];
-      if (v !== undefined && v !== DEAD_PROXY) throw new Error(`guard: ${spelling}=${v} is not the closed port ${DEAD_PROXY} (refusing to start a binary)`);
-    }
-    if (getVar(env, name) !== DEAD_PROXY) throw new Error(`guard: ${name} is not set to the closed port ${DEAD_PROXY} (refusing to start a binary)`);
+    const keys = spellings(name);
+    if (!keys.length) throw new Error(`guard: ${name} is not set to the closed port ${DEAD_PROXY} (refusing to start a binary)`);
+    for (const k of keys) if (env[k] !== DEAD_PROXY) throw new Error(`guard: ${k}=${env[k]} is not the closed port ${DEAD_PROXY} (refusing to start a binary)`);
   }
-  if (getVar(env, "NO_PROXY") !== NO_PROXY) throw new Error(`guard: NO_PROXY is not ${NO_PROXY} (refusing to start a binary)`);
+  const noProxy = spellings("NO_PROXY");
+  if (!noProxy.length || noProxy.some((k) => env[k] !== NO_PROXY)) throw new Error(`guard: NO_PROXY is not ${NO_PROXY} (refusing to start a binary)`);
   return env;
 }
 

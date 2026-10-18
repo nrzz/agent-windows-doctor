@@ -331,7 +331,9 @@ export async function runCodex(sys, { binary, world }) {
     const events = r.out.split(/\r?\n/).filter((l) => l.startsWith("{")).map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
     const item = events.find((e) => e.type === "item.completed" && e.item && e.item.type === "command_execution");
     const line = item ? item.item.command : null;
-    return { ran: true, exitCode: r.code, timedOut: r.timedOut, requests: api.requests.length, line, program: programOf(line), output: item ? item.item.aggregated_output : null, stderr: r.err.trim().split(/\r?\n/).filter((l) => !/^WARNING: proceeding|^Reading additional/.test(l))[0] || "" };
+    // Codex prints each backslash of the path twice in this field (C:\\WINDOWS\\System32...): `line` is as it printed it, `program` is the path
+    const program = programOf(line);
+    return { ran: true, exitCode: r.code, timedOut: r.timedOut, requests: api.requests.length, line, program: program ? program.replace(/\\\\/g, "\\") : program, output: item ? item.item.aggregated_output : null, stderr: r.err.trim().split(/\r?\n/).filter((l) => !/^WARNING: proceeding|^Reading additional/.test(l))[0] || "" };
   } finally { await api.close(); }
 }
 
