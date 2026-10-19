@@ -35,10 +35,8 @@ export function pageFor(id, pages = PAGES) {
   const key = String(id).trim().toLowerCase();
   if (!key) return null;
   const exact = pages.find((x) => x.id === key);
-  const p = exact ?? (() => {
-    const matches = pages.filter((x) => x.id.includes(key));
-    return matches.length === 1 ? matches[0] : null;
-  })();
+  const partial = exact ? [] : (pages === PAGES ? idsContaining(key) : pages.filter((x) => x.id.includes(key)).map((x) => x.id));
+  const p = exact ?? (partial.length === 1 ? pages.find((x) => x.id === partial[0]) : null);
   if (!p) return null;
   return { ...p, does: p.does.map((line) => { const m = /^([VDN]): (.*)$/s.exec(line); return m ? { source: MARK[m[1]], text: m[2] } : { source: null, text: line }; }) };
 }

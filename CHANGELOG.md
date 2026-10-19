@@ -4,6 +4,8 @@ All notable changes to agent-windows-doctor are written here. The format follows
 
 ## [Unreleased]
 
+- `explain <id>` says when a part of an id is ambiguous and lists every matching id in page order: `"part" is a part of N finding ids: ... Give one of them.` (exit 1). `--json` includes `refused` and the matching `ids`. An unknown id keeps today's message and nearest ids.
+
 ## [1.1.0] - 2026-10-19
 
 - `explain` takes a part of a finding id when exactly one id contains it: `explain shell-path` prints `codex.shell-path-ignored`, `explain sandbox` prints `codex.sandbox-none`, in any case. A whole id still wins, and a part that several ids contain is refused like an unknown id, with the nearest ids as candidates (`explain hook-bash` names the hook-bash-syntax ids; in `--json` they are `near`). `--json` is otherwise unchanged: the page's `id` is the full id.
