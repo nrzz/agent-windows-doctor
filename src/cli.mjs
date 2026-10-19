@@ -14,7 +14,7 @@ import { agentsJson, agentsText, checkJson, checkMarkdown, checkText, explainJso
 export const HELP = `Usage: agent-windows-doctor <command> [options]
 
 Read (they change nothing):
-  check    [--project <dir>] [--agent claude,codex,gemini,copilot,cursor|all] [--live] [--markdown]
+  check    [--project <dir>] [--agent claude,codex,gemini,copilot,cursor|all] [--live] [--markdown] [--max <n>]
            [--claude <path>] [--codex <path>] [--gemini <path>] [--copilot <path>]
            on Windows, for Claude Code, Codex CLI, Gemini CLI, GitHub Copilot CLI and Cursor: the machine
            (Windows, PowerShell editions with language mode and execution policy, Git for Windows, every
@@ -25,7 +25,7 @@ Read (they change nothing):
            side. On Linux and macOS: nothing to check. Exit 1 on an error or a warning. --live proves the
            shell choice of each agent with its real binary through a fake API on 127.0.0.1 (no token is
            spent), using the first of its kind on PATH or the path an option names. --markdown is the
-           short report to paste into any agent (at most 12 findings); it always exits 0
+           short report to paste into any agent (at most 12 findings, or --max <n>); it always exits 0
   agents   [--agent ...]
            every program of each agent, alone: which one runs first
   explain  [--list [<part>] | <finding-id>]
@@ -49,19 +49,19 @@ starts an agent's binary only with --live, in throwaway folders, and sends nothi
 `;
 
 const COMMANDS = {
-  check: { options: ["project", "agent", "json", "markdown", "live", "claude", "codex", "gemini", "copilot"], positional: 0 },
+  check: { options: ["project", "agent", "json", "markdown", "max", "live", "claude", "codex", "gemini", "copilot"], positional: 0 },
   agents: { options: ["agent", "json"], positional: 0 },
   explain: { options: ["json", "list"], positional: 1 },
 };
 
 const FLAGS = { "--json": "json", "--markdown": "markdown", "--live": "live", "--list": "list", "-h": "help", "--help": "help", "-v": "version", "--version": "version" };
-const VALUES = { "--project": "project", "--agent": "agent", "--claude": "claude", "--codex": "codex", "--gemini": "gemini", "--copilot": "copilot" };
+const VALUES = { "--project": "project", "--agent": "agent", "--claude": "claude", "--codex": "codex", "--gemini": "gemini", "--copilot": "copilot", "--max": "max" };
 
 class UsageError extends Error {}
 
-/** Reads the argument list. Returns { command, id, project, agent, claude, codex, gemini, copilot, json, markdown, live, list, help, version, given } or throws a UsageError. */
+/** Reads the argument list. Returns { command, id, project, agent, claude, codex, gemini, copilot, max, json, markdown, live, list, help, version, given } or throws a UsageError. */
 export function parseArgs(argv) {
-  const o = { command: null, id: null, project: undefined, agent: undefined, claude: undefined, codex: undefined, gemini: undefined, copilot: undefined, json: false, markdown: false, live: false, list: false, help: false, version: false, given: new Set() };
+  const o = { command: null, id: null, project: undefined, agent: undefined, claude: undefined, codex: undefined, gemini: undefined, copilot: undefined, max: undefined, json: false, markdown: false, live: false, list: false, help: false, version: false, given: new Set() };
   const positional = [];
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -99,6 +99,11 @@ export function parseArgs(argv) {
   }
   for (const id of ["claude", "codex", "gemini", "copilot"]) if (o.command === "check" && o[id] !== undefined && !o.live) throw new UsageError(`--${id} is for --live: it names the ${id} to run`);
   if (o.command === "check" && o.markdown && o.live) throw new UsageError("--markdown is the short report to paste and does not run --live");
+  if (o.command === "check" && o.max !== undefined) {
+    if (!o.markdown) throw new UsageError("--max goes with --markdown");
+    if (!/^[1-9]\d*$/.test(o.max)) throw new UsageError("--max needs a whole number, 1 or more");
+    o.max = parseInt(o.max, 10);
+  }
   return o;
 }
 
@@ -189,7 +194,7 @@ export async function main(argv, io = {}) {
     if (kind === "other") {
       // --live is no exception: on Linux and macOS there is nothing to check, so nothing to prove, and the answer is the same with exit code 0
       const f = notApplicable(sys);
-      if (o.markdown) stdout.write(checkMarkdown(f)); else emit(checkJson(f), checkText(f));
+      if (o.markdown) stdout.write(checkMarkdown(f, o.max !== undefined ? { maxFindings: o.max } : {})); else emit(checkJson(f), checkText(f));
       return 0;
     }
     if (o.live && kind !== "windows") {
@@ -205,7 +210,7 @@ export async function main(argv, io = {}) {
       facts.findings = [...facts.findings, ...liveFindings(facts.live)].sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]);
       facts.counts = countFindings(facts.findings);
     }
-    if (o.markdown) { stdout.write(checkMarkdown(facts)); return 0; }
+    if (o.markdown) { stdout.write(checkMarkdown(facts, o.max !== undefined ? { maxFindings: o.max } : {})); return 0; }
     emit(checkJson(facts), checkText(facts));
     return facts.counts.error + facts.counts.warning > 0 || liveFailed ? 1 : 0;
   } catch (e) {

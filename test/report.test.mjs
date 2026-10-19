@@ -186,3 +186,20 @@ test("plain words: no emoji and none of the words the house does not use, in any
   assert.ok(!/\p{Extended_Pictographic}/u.test(all));
   assert.ok(!/\b(simply|easily|blazing|seamless|powerful|amazing|revolutionary)\b/i.test(all));
 });
+
+test("checkMarkdown with maxFindings: caps the errors and warnings to the cap given, or shows all with a high cap", () => {
+  const base = collect(winMachine());
+  const findings = Array.from({ length: 5 }, (_, i) => ({ id: `claude.f-${i}`, severity: "warning", message: `Message ${i}.`, effect: null, fix: `Fix ${i}.` }));
+  const f = { ...base, findings, counts: { error: 0, warning: 5, note: 0 } };
+
+  const cap1 = checkMarkdown(f, { maxFindings: 1 });
+  const lines1 = cap1.trimEnd().split("\n");
+  assert.equal(lines1.filter((l) => l.startsWith("- WARNING")).length, 1);
+  assert.equal(lines1.at(-1), "- ... and 4 more (run `agent-windows-doctor check`)");
+
+  const cap100 = checkMarkdown(f, { maxFindings: 100 });
+  const lines100 = cap100.trimEnd().split("\n");
+  assert.equal(lines100.filter((l) => l.startsWith("- WARNING")).length, 5);
+  assert.ok(!lines100.some((l) => l.includes("and") && l.includes("more")));
+});
+
