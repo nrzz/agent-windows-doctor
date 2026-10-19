@@ -71,7 +71,7 @@ Read (they change nothing):
            short report to paste into any agent (at most 12 findings); it always exits 0
   agents   [--agent ...]
            every program of each agent, alone: which one runs first
-  explain  [--list] <finding-id>
+  explain  [--list [<part>] | <finding-id>]
            what a finding means, what the agent does in that case (each line marked verified,
            documented or not verified), the fix, and the issue and forum threads
 
@@ -228,7 +228,7 @@ Claude Code 2.1.302 runs first; Codex CLI 0.163.0 runs first; Gemini CLI 0.64.0 
 
 ### `explain`
 
-One page per finding id: what it means, what the agent does (each line marked verified, documented or not verified), the fix, and the issue or forum threads. `explain --list` prints the 77 ids with their titles. An id is matched without regard to case, a unique part of an id matches the page, an ambiguous part lists every matching id in page order, and an unknown id suggests the nearest ids.
+One page per finding id: what it means, what the agent does (each line marked verified, documented or not verified), the fix, and the issue or forum threads. `explain --list` prints the 77 ids with their titles; `explain --list <part>` filters that list to every id containing the part, without regard to case and with surrounding whitespace ignored. An id is matched without regard to case, a unique part of an id matches the page, an ambiguous part lists every matching id in page order, and an unknown id suggests the nearest ids.
 
 ```text
 $ agent-windows-doctor explain codex.shell-path-ignored
@@ -487,7 +487,7 @@ The Cursor CLI was not installed or run: it needs a login, and its installer (`i
 
 ### Tests
 
-- **276 automated tests** (`npm test`, Node's own runner, no dependencies). `node --test` also reports each of the 12 helper files under `test/` as a passing test; those are not counted here (the runner's total was 288). On Windows 232 pass and 44 are skipped when no real binary is named: the skipped ones are the real-binary checks described above, which run only when `E2E_CLAUDE`, `E2E_CODEX`, `E2E_GEMINI` or `E2E_COPILOT` names a binary. On Linux and macOS 215 pass and 61 are skipped, because the tests that read the real Windows are skipped as well; everything else there runs against pretend Windows machines. The test that states these numbers fails if the README's are not the runner's, on each system. The test that states this number runs the suite a second time to count it: one run of the suite takes 35 seconds on the machine this was written on, and `npm test`, with the count, 59. The tests cover:
+- **277 automated tests** (`npm test`, Node's own runner, no dependencies). `node --test` also reports each of the 12 helper files under `test/` as a passing test; those are not counted here (the runner's total was 289). On Windows 233 pass and 44 are skipped when no real binary is named: the skipped ones are the real-binary checks described above, which run only when `E2E_CLAUDE`, `E2E_CODEX`, `E2E_GEMINI` or `E2E_COPILOT` names a binary. On Linux and macOS 216 pass and 61 are skipped, because the tests that read the real Windows are skipped as well; everything else there runs against pretend Windows machines. The test that states these numbers fails if the README's are not the runner's, on each system. The test that states this number runs the suite a second time to count it: one run of the suite takes 35 seconds on the machine this was written on, and `npm test`, with the count, 59. The tests cover:
   - Claude Code's shell: the 129 cases of the table against the prediction on a pretend machine, the settings files, Git Bash, the user environment, WSL (`claude-shell.test.mjs`, `claude-settings.test.mjs`, `gitbash.test.mjs`, `userenv.test.mjs`, `wsl.test.mjs`, `facts.test.mjs`).
   - The inventory of binaries, launchers and shims, and versions read without running anything (`inventory.test.mjs`), the machine and the PowerShell editions (`machine.test.mjs`), Codex on Windows (`codex.test.mjs`), the Cursor launcher, node-pty and the Node each package asks for (`agentfacts.test.mjs`), and the hooks (`hooks.test.mjs`).
   - The findings: each of the 77 ids is produced by some pretend machine, with the severity of its table and the basis of its page (`findings.test.mjs`); the pages of `explain` (`explain.test.mjs`); the text, markdown and JSON reports, the cap of 12 findings and 500 characters, and that a secret in the environment is in none of them (`report.test.mjs`); the options, the exit codes and every usage error (`cli.test.mjs`).
