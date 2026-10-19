@@ -4,7 +4,10 @@ All notable changes to agent-windows-doctor are written here. The format follows
 
 ## [Unreleased]
 
-- `explain <id>` accepts a unique part of an id (for example `explain shell-path` opens `codex.shell-path-ignored`). An ambiguous part lists the candidates and exits 1, with the candidate ids in `near` when `--json` is given. An exact id continues to take precedence.
+## [1.1.0] - 2026-10-19
+
+- `explain` takes a part of a finding id when exactly one id contains it: `explain shell-path` prints `codex.shell-path-ignored`, `explain sandbox` prints `codex.sandbox-none`, in any case. A whole id still wins, and a part that several ids contain is refused like an unknown id, with the nearest ids as candidates (`explain hook-bash` names the hook-bash-syntax ids; in `--json` they are `near`). `--json` is otherwise unchanged: the page's `id` is the full id.
+- Contributed by [@yoreva-01](https://github.com/yoreva-01) in [#2](https://github.com/nrzz/agent-windows-doctor/pull/2), the first outside pull request, for the good first issue [#1](https://github.com/nrzz/agent-windows-doctor/issues/1).
 
 ## [1.0.0] - 2026-10-18
 
@@ -17,6 +20,7 @@ All notable changes to agent-windows-doctor are written here. The format follows
 - The Claude Code part and the machine checks are claude-windows-doctor's (its 27 findings, under the ids `claude.<name>`), copied into this repository: `src/sys.mjs`, `src/winpath.mjs`, `src/gitbash.mjs`, `src/facts.mjs`, `src/wsl.mjs`, `src/userenv.mjs`, `src/winenv.mjs` (its reading part), `src/claude-shell.mjs`, `src/claude-settings.mjs` and `src/jsonfile.mjs`, and the table of 129 cases in `test/shell-table.mjs`, which is held to the prediction on a pretend machine; the real-binary checks here put one row for each claim the pages restate. The TOML reader `src/toml.mjs` is codex-config-doctor's.
 - Zero tokens for the tool, no dependencies, no network code except the local connection of `check --live`, and nothing written except the throwaway folders of `check --live`.
 
+[1.1.0]: https://github.com/nrzz/agent-windows-doctor/releases/tag/v1.1.0
 [1.0.0]: https://github.com/nrzz/agent-windows-doctor/releases/tag/v1.0.0
 
-[Unreleased]: https://github.com/nrzz/agent-windows-doctor/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/nrzz/agent-windows-doctor/compare/v1.1.0...HEAD
