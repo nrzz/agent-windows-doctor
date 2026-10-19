@@ -24,17 +24,28 @@ export function listPages() {
   return PAGES.map(({ id, title, basis }) => ({ id, title, basis }));
 }
 
-/** A page by id, with each line of `does` split into its mark and text, or null. */
-export function pageFor(id) {
+/** Every id containing a nonempty part, in page order. */
+export function idsContaining(part) {
+  const key = String(part).trim().toLowerCase();
+  return IDS.filter((id) => key && id.includes(key));
+}
+
+/** A page by exact id or a unique part of one, with each line of `does` split into its mark and text, or null. */
+export function pageFor(id, pages = PAGES) {
   const key = String(id).trim().toLowerCase();
-  const p = PAGES.find((x) => x.id === key);
+  if (!key) return null;
+  const exact = pages.find((x) => x.id === key);
+  const p = exact ?? (() => {
+    const matches = pages.filter((x) => x.id.includes(key));
+    return matches.length === 1 ? matches[0] : null;
+  })();
   if (!p) return null;
   return { ...p, does: p.does.map((line) => { const m = /^([VDN]): (.*)$/s.exec(line); return m ? { source: MARK[m[1]], text: m[2] } : { source: null, text: line }; }) };
 }
 
 /** The ids nearest to a word that is not one, for "did you mean". */
 export function nearIds(word) {
-  const w = String(word).toLowerCase();
+  const w = String(word).trim().toLowerCase();
   const scored = IDS.map((id) => ({ id, score: id.includes(w) || w.includes(id) ? 0 : w.split(/[-.]/).filter((p) => p && id.includes(p)).length ? 1 : 2 })).filter((x) => x.score < 2);
   return scored.sort((a, b) => a.score - b.score).slice(0, 5).map((x) => x.id);
 }

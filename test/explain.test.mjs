@@ -63,14 +63,29 @@ test("every number the pages cite is one the research of 18 October 2026 gave, f
   for (const [tracker, list] of Object.entries(cited)) if (!known[tracker]) assert.ok(tracker.includes("anthropics/claude-code"), tracker + ": " + list.join(","));
 });
 
-test("pageFor takes an id in any case and splits each line into its mark and text; nearIds helps with a part of an id", () => {
+test("pageFor takes an id in any case or a unique part, and splits each line into its mark and text; nearIds helps with a part of an id", () => {
   const p = pageFor("  Claude.Git-Bash-Not-Found ");
   assert.equal(p.id, "claude.git-bash-not-found");
   assert.deepEqual(p.does.map((d) => d.source).slice(0, 2), ["verified", "verified"]);
   assert.ok(pageFor("codex.hook-exit-2").does.some((d) => d.source === "documented"));
   assert.ok(pageFor("cursor.msystem").does.some((d) => d.source === "not verified"));
-  assert.equal(pageFor("git-bash-not-found"), null, "the old id without the agent is not an id");
+  // unique part
+  assert.equal(pageFor("shell-path").id, "codex.shell-path-ignored");
+  assert.equal(pageFor("SHELL-PATH").id, "codex.shell-path-ignored");
+  assert.equal(pageFor("git-bash-not-found").id, "claude.git-bash-not-found");
+  // ambiguous part
+  assert.equal(pageFor("hook-bash"), null, "an ambiguous part matches several ids and is not one page");
+  // part that matches nothing
   assert.equal(pageFor("nosuch"), null);
+  assert.equal(pageFor(""), null);
+  // exact id that is also a part of another id
+  const mockPages = [
+    { id: "sample.id", title: "Exact", means: "Means ".repeat(10), does: ["V: line"], fix: ["fix line"], basis: "verified", issues: [] },
+    { id: "sample.id-extra", title: "Extra", means: "Means ".repeat(10), does: ["V: line"], fix: ["fix line"], basis: "verified", issues: [] },
+  ];
+  assert.equal(pageFor("sample.id", mockPages).id, "sample.id", "an exact id wins even when it is also a part of another id");
+  assert.equal(pageFor("id-extra", mockPages).id, "sample.id-extra", "unique part of mock page");
+  assert.equal(pageFor("sample", mockPages), null, "ambiguous part of mock pages");
   assert.deepEqual(nearIds("git-bash-not-found").slice(0, 1), ["claude.git-bash-not-found"]);
   assert.ok(nearIds("sandbox").includes("codex.sandbox-none"));
   assert.deepEqual(nearIds("zzzz"), []);

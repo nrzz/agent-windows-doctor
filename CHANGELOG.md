@@ -4,6 +4,8 @@ All notable changes to agent-windows-doctor are written here. The format follows
 
 ## [Unreleased]
 
+- `explain <id>` accepts a unique part of an id (for example `explain shell-path` opens `codex.shell-path-ignored`). An ambiguous part lists the candidates and exits 1, with the candidate ids in `near` when `--json` is given. An exact id continues to take precedence.
+
 ## [1.0.0] - 2026-10-18
 
 - First release. A read-only CLI that says, on Windows, what Claude Code, Codex CLI, Gemini CLI, GitHub Copilot CLI and Cursor each get and why. On Linux and macOS it says there is nothing to check and exits 0.

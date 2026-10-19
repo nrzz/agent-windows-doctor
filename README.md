@@ -228,7 +228,7 @@ Claude Code 2.1.302 runs first; Codex CLI 0.163.0 runs first; Gemini CLI 0.64.0 
 
 ### `explain`
 
-One page per finding id: what it means, what the agent does (each line marked verified, documented or not verified), the fix, and the issue or forum threads. `explain --list` prints the 77 ids with their titles. An id is matched without regard to case, and a near miss suggests the id.
+One page per finding id: what it means, what the agent does (each line marked verified, documented or not verified), the fix, and the issue or forum threads. `explain --list` prints the 77 ids with their titles. An id is matched without regard to case, a unique part of an id matches the page, an ambiguous part lists the candidates, and a near miss suggests the id.
 
 ```text
 $ agent-windows-doctor explain codex.shell-path-ignored
