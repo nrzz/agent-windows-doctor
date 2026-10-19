@@ -8,7 +8,7 @@ import { fakeMachine } from "./machine.mjs";
 import { HOME, npmInstall, winMachine, withNpm } from "./win-machine.mjs";
 import { HELP, parseArgs } from "../src/cli.mjs";
 import { VERSION } from "../src/version.mjs";
-import { IDS } from "../src/explain.mjs";
+import { IDS, PAGES } from "../src/explain.mjs";
 
 const usage = (argv) => { try { parseArgs(argv); } catch (e) { return e.message; } return null; };
 const four = (o = {}) => winMachine(withNpm(o, ["claude", "codex", "gemini", "copilot"]));
@@ -156,11 +156,41 @@ test("explain: a page by id, the list, and what an id that is not one gets (exit
   const list = await run(["explain", "--list"]);
   assert.equal(list.out.trim().split("\n").length, IDS.length);
   assert.equal((await run(["explain", "--list", "--json"])).json().findings.length, IDS.length);
-  const bad = await run(["explain", "sandbox"]);
+  // unique part: shell-path matches codex.shell-path-ignored; sandbox matches codex.sandbox-none
+  const part = await run(["explain", "shell-path"]);
+  assert.equal(part.code, 0);
+  assert.match(part.out, /^codex\.shell-path-ignored /);
+  assert.equal((await run(["explain", "shell-path", "--json"])).json().id, "codex.shell-path-ignored");
+  const part2 = await run(["explain", "sandbox"]);
+  assert.equal(part2.code, 0);
+  assert.match(part2.out, /^codex\.sandbox-none /);
+  // ambiguous part: hook-bash matches several ids, exits 1, prints candidates
+  const ambig = await run(["explain", "hook-bash"]);
+  assert.equal(ambig.code, 1);
+  assert.match(ambig.err, /^agent-windows-doctor: no finding called "hook-bash"\. Did you mean claude\.hook-bash-syntax, /);
+  const ambigJson = (await run(["explain", "hook-bash", "--json"])).json();
+  assert.equal(ambigJson.ok, false);
+  assert.equal(ambigJson.refused, 'no finding called "hook-bash"');
+  assert.ok(ambigJson.near.includes("claude.hook-bash-syntax"));
+  assert.ok(ambigJson.near.includes("codex.hook-bash-syntax"));
+  // part that matches nothing: exit 1, no near match
+  const bad = await run(["explain", "nosuch"]);
   assert.equal(bad.code, 1);
-  assert.match(bad.err, /^agent-windows-doctor: no finding called "sandbox"\. Did you mean codex\.sandbox-none\?\nThe ids: claude\.no-shell-tool, /);
+  assert.match(bad.err, /^agent-windows-doctor: no finding called "nosuch"\.\nThe ids: /);
   const badJson = (await run(["explain", "nosuch", "--json"])).json();
   assert.deepEqual([badJson.ok, badJson.refused, badJson.ids.length, badJson.near], [false, 'no finding called "nosuch"', IDS.length, []]);
+  // exact id always wins, even when it is also a part of other ids
+  const extra = { id: "codex.shell-path-ignored-extra", title: "Extra", means: "Means ".repeat(10), does: ["V: line"], fix: ["fix line"], basis: "verified", issues: [] };
+  PAGES.push(extra);
+  IDS.push(extra.id);
+  try {
+    const exact = await run(["explain", "codex.shell-path-ignored"]);
+    assert.equal(exact.code, 0);
+    assert.match(exact.out, /^codex\.shell-path-ignored /);
+  } finally {
+    PAGES.pop();
+    IDS.pop();
+  }
 });
 
 // ---- --live, with stand-ins for the runs ---------------------------------------------------------------------------------------------
@@ -239,6 +269,8 @@ test("the real command line in a child process: --version, --help, a usage error
   assert.match(bad.err, /unknown option --nope/);
   const e = runCli(["explain", "claude.long-paths", "--json"], { cwd: w.work, env: w.env });
   assert.equal(JSON.parse(e.out).id, "claude.long-paths");
+  const partChild = runCli(["explain", "shell-path", "--json"], { cwd: w.work, env: w.env });
+  assert.equal(JSON.parse(partChild.out).id, "codex.shell-path-ignored");
   const pipe = runCli(["explain", "--list"], { cwd: w.work, env: w.env });
   assert.equal(pipe.code, 0);
 });
