@@ -99,7 +99,7 @@ All five agents in one run is a long report; this is one agent, whole.
 
 ```text
 $ agent-windows-doctor check --agent codex --project C:\Users\me\shop
-agent-windows-doctor 1.2.0  what the coding agents get on this Windows machine
+agent-windows-doctor 1.3.0  what the coding agents get on this Windows machine
 project   C:\Users\me\shop
 system    Windows 11 Home Single Language (10.0.26300), x64
 agents    Codex CLI
@@ -256,7 +256,7 @@ The inventory alone, for "which `claude` runs first": the second section of `che
 
 ```text
 $ agent-windows-doctor agents
-agent-windows-doctor 1.2.0  every agent on this machine
+agent-windows-doctor 1.3.0  every agent on this machine
 
   Claude Code
     1  C:\Users\me\.local\bin\claude.exe
