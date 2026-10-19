@@ -4,7 +4,10 @@ All notable changes to agent-windows-doctor are written here. The format follows
 
 ## [Unreleased]
 
-- `explain <id>` says when a part of an id is ambiguous and lists every matching id in page order: `"part" is a part of N finding ids: ... Give one of them.` (exit 1). `--json` includes `refused` and the matching `ids`. An unknown id keeps today's message and nearest ids.
+## [1.2.0] - 2026-10-19
+
+- `explain` tells an ambiguous part from an unknown id: a part that several ids contain is refused with every id that contains it, in page order (`explain hook-bash` names the six and says "Give one of them"; `explain .` names all 77), in text and in JSON (`ids` holds those ids and `near` is empty); an unknown id keeps its message with the nearest ids. Both exit 1.
+- Contributed by [@yoreva-01](https://github.com/yoreva-01) in [#4](https://github.com/nrzz/agent-windows-doctor/pull/4), for the good first issue [#3](https://github.com/nrzz/agent-windows-doctor/issues/3).
 
 ## [1.1.0] - 2026-10-19
 
@@ -22,7 +25,8 @@ All notable changes to agent-windows-doctor are written here. The format follows
 - The Claude Code part and the machine checks are claude-windows-doctor's (its 27 findings, under the ids `claude.<name>`), copied into this repository: `src/sys.mjs`, `src/winpath.mjs`, `src/gitbash.mjs`, `src/facts.mjs`, `src/wsl.mjs`, `src/userenv.mjs`, `src/winenv.mjs` (its reading part), `src/claude-shell.mjs`, `src/claude-settings.mjs` and `src/jsonfile.mjs`, and the table of 129 cases in `test/shell-table.mjs`, which is held to the prediction on a pretend machine; the real-binary checks here put one row for each claim the pages restate. The TOML reader `src/toml.mjs` is codex-config-doctor's.
 - Zero tokens for the tool, no dependencies, no network code except the local connection of `check --live`, and nothing written except the throwaway folders of `check --live`.
 
+[1.2.0]: https://github.com/nrzz/agent-windows-doctor/releases/tag/v1.2.0
 [1.1.0]: https://github.com/nrzz/agent-windows-doctor/releases/tag/v1.1.0
 [1.0.0]: https://github.com/nrzz/agent-windows-doctor/releases/tag/v1.0.0
 
-[Unreleased]: https://github.com/nrzz/agent-windows-doctor/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/nrzz/agent-windows-doctor/compare/v1.2.0...HEAD
