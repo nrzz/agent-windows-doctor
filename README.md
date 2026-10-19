@@ -57,7 +57,7 @@ The examples below call the command `agent-windows-doctor`.
 Usage: agent-windows-doctor <command> [options]
 
 Read (they change nothing):
-  check    [--project <dir>] [--agent claude,codex,gemini,copilot,cursor|all] [--live] [--markdown]
+  check    [--project <dir>] [--agent claude,codex,gemini,copilot,cursor|all] [--live] [--markdown] [--max <n>]
            [--claude <path>] [--codex <path>] [--gemini <path>] [--copilot <path>]
            on Windows, for Claude Code, Codex CLI, Gemini CLI, GitHub Copilot CLI and Cursor: the machine
            (Windows, PowerShell editions with language mode and execution policy, Git for Windows, every
@@ -68,7 +68,7 @@ Read (they change nothing):
            side. On Linux and macOS: nothing to check. Exit 1 on an error or a warning. --live proves the
            shell choice of each agent with its real binary through a fake API on 127.0.0.1 (no token is
            spent), using the first of its kind on PATH or the path an option names. --markdown is the
-           short report to paste into any agent (at most 12 findings); it always exits 0
+           short report to paste into any agent (at most 12 findings, or --max <n>); it always exits 0
   agents   [--agent ...]
            every program of each agent, alone: which one runs first
   explain  [--list [<part>] | <finding-id>]
@@ -207,7 +207,7 @@ Codex prints each backslash of the path in its `command_execution` item twice, a
 
 ### `check --markdown`
 
-The short report to paste into any agent: at most 12 findings (errors and warnings; the notes stay in `check`), 500 characters a line, and exit code 0 always.
+The short report to paste into any agent: at most 12 findings (errors and warnings; the notes stay in `check`), 500 characters a line, and exit code 0 always. `--max <n>` sets how many errors and warnings the report holds (default 12, minimum 1, whole numbers only); `--max` without `--markdown` is a usage error.
 
 ```text
 $ agent-windows-doctor check --markdown --project C:\Users\me\shop
@@ -487,7 +487,7 @@ The Cursor CLI was not installed or run: it needs a login, and its installer (`i
 
 ### Tests
 
-- **277 automated tests** (`npm test`, Node's own runner, no dependencies). `node --test` also reports each of the 12 helper files under `test/` as a passing test; those are not counted here (the runner's total was 289). On Windows 233 pass and 44 are skipped when no real binary is named: the skipped ones are the real-binary checks described above, which run only when `E2E_CLAUDE`, `E2E_CODEX`, `E2E_GEMINI` or `E2E_COPILOT` names a binary. On Linux and macOS 216 pass and 61 are skipped, because the tests that read the real Windows are skipped as well; everything else there runs against pretend Windows machines. The test that states these numbers fails if the README's are not the runner's, on each system. The test that states this number runs the suite a second time to count it: one run of the suite takes 35 seconds on the machine this was written on, and `npm test`, with the count, 59. The tests cover:
+- **278 automated tests** (`npm test`, Node's own runner, no dependencies). `node --test` also reports each of the 12 helper files under `test/` as a passing test; those are not counted here (the runner's total was 290). On Windows 234 pass and 44 are skipped when no real binary is named: the skipped ones are the real-binary checks described above, which run only when `E2E_CLAUDE`, `E2E_CODEX`, `E2E_GEMINI` or `E2E_COPILOT` names a binary. On Linux and macOS 217 pass and 61 are skipped, because the tests that read the real Windows are skipped as well; everything else there runs against pretend Windows machines. The test that states these numbers fails if the README's are not the runner's, on each system. The test that states this number runs the suite a second time to count it: one run of the suite takes 35 seconds on the machine this was written on, and `npm test`, with the count, 59. The tests cover:
   - Claude Code's shell: the 129 cases of the table against the prediction on a pretend machine, the settings files, Git Bash, the user environment, WSL (`claude-shell.test.mjs`, `claude-settings.test.mjs`, `gitbash.test.mjs`, `userenv.test.mjs`, `wsl.test.mjs`, `facts.test.mjs`).
   - The inventory of binaries, launchers and shims, and versions read without running anything (`inventory.test.mjs`), the machine and the PowerShell editions (`machine.test.mjs`), Codex on Windows (`codex.test.mjs`), the Cursor launcher, node-pty and the Node each package asks for (`agentfacts.test.mjs`), and the hooks (`hooks.test.mjs`).
   - The findings: each of the 77 ids is produced by some pretend machine, with the severity of its table and the basis of its page (`findings.test.mjs`); the pages of `explain` (`explain.test.mjs`); the text, markdown and JSON reports, the cap of 12 findings and 500 characters, and that a secret in the environment is in none of them (`report.test.mjs`); the options, the exit codes and every usage error (`cli.test.mjs`).

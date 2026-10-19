@@ -4,6 +4,9 @@ All notable changes to agent-windows-doctor are written here. The format follows
 
 ## [Unreleased]
 
+- `check --markdown --max <n>` sets how many errors and warnings the short report holds (default 12, minimum 1, whole numbers only). When there are more findings than the cap, the line `- ... and N more (run `agent-windows-doctor check`)` counts against the cap given. Using `--max` without `--markdown` or with a non-positive integer is a usage error (exit 2).
+- Contributed by [@yoreva-01](https://github.com/yoreva-01) for the good first issue [#7](https://github.com/nrzz/agent-windows-doctor/issues/7).
+
 ## [1.3.0] - 2026-10-19
 
 - `explain --list <part>` filters the list of findings to every id containing the part, without regard to case and with surrounding whitespace ignored, padded to the longest id shown; `explain --list <agent>.` lists one agent's findings. With `--json`, `{ ok: true, findings: [ { id, title, basis } ] }`. When no id contains the part, exits 1 with a refusal and nearest suggestions (`no finding id contains "<part>"`).

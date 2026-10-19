@@ -23,6 +23,8 @@ test("parseArgs: the commands, the flags, the values, and the defaults", () => {
   assert.equal(parseArgs(["agents", "--json"]).command, "agents");
   const live = parseArgs(["check", "--live", "--claude", "C:\\c\\claude.exe", "--codex=C:\\x\\codex.cmd", "--gemini", "g", "--copilot", "p"]);
   assert.deepEqual([live.claude, live.codex, live.gemini, live.copilot], ["C:\\c\\claude.exe", "C:\\x\\codex.cmd", "g", "p"]);
+  assert.equal(parseArgs(["check", "--markdown", "--max", "3"]).max, 3);
+  assert.equal(parseArgs(["check", "--markdown", "--max=40"]).max, 40);
   assert.equal(parseArgs(["-h"]).help, true);
   assert.equal(parseArgs(["--version"]).version, true);
   assert.equal(parseArgs(["check", "--project", "--odd-folder"]).project, "--odd-folder", "a project folder may start with dashes");
@@ -41,12 +43,20 @@ test("parseArgs: every usage error says what is wrong", () => {
   assert.equal(usage(["check", "--codex", "x"]), "--codex is for --live: it names the codex to run");
   assert.equal(usage(["check", "--claude", "x"]), "--claude is for --live: it names the claude to run");
   assert.equal(usage(["check", "--markdown", "--live"]), "--markdown is the short report to paste and does not run --live");
+  assert.equal(usage(["check", "--max", "3"]), "--max goes with --markdown");
+  assert.equal(usage(["check", "--markdown", "--max"]), "--max needs a value");
+  assert.equal(usage(["check", "--markdown", "--max", "0"]), "--max needs a whole number, 1 or more");
+  assert.equal(usage(["check", "--markdown", "--max", "-1"]), "--max needs a whole number, 1 or more");
+  assert.equal(usage(["check", "--markdown", "--max", "nope"]), "--max needs a whole number, 1 or more");
+  assert.equal(usage(["check", "--markdown", "--max", "1.5"]), "--max needs a whole number, 1 or more");
   assert.equal(usage(["explain"]), "explain needs a finding id or --list (for example claude.git-bash-not-found)");
   assert.equal(usage(["explain", "a", "b"]), 'explain takes one finding id, not "a b"');
   assert.equal(usage(["explain", "--list", "a", "b"]), 'explain takes one part, not "a b"');
   assert.equal(usage(["agents", "extra"]), 'agents takes no name, not "extra"');
   assert.equal(usage(["agents", "--live"]), "agents does not take --live");
+  assert.equal(usage(["agents", "--max", "3"]), "agents does not take --max");
   assert.equal(usage(["explain", "--markdown", "x"]), "explain does not take --markdown");
+  assert.equal(usage(["explain", "--max", "3"]), "explain does not take --max");
   assert.equal(usage(["check", "x"]), 'check takes no name, not "x"');
 });
 
@@ -68,6 +78,12 @@ test("a usage error exits 2, on stderr, with a pointer to --help; with --json it
   const j = await run(["check", "--bogus", "--json"], { sys: winMachine() });
   assert.equal(j.code, 2);
   assert.deepEqual(j.json(), { ok: false, error: "unknown option --bogus" });
+  const noMd = await run(["check", "--max", "3"], { sys: winMachine() });
+  assert.equal(noMd.code, 2);
+  assert.match(noMd.err, /^agent-windows-doctor: --max goes with --markdown\n/);
+  const notNum = await run(["check", "--markdown", "--max", "0"], { sys: winMachine() });
+  assert.equal(notNum.code, 2);
+  assert.match(notNum.err, /^agent-windows-doctor: --max needs a whole number, 1 or more\n/);
 });
 
 test("check: exit 0 with no finding, 1 with a warning or an error, and a note alone is exit 0; --json prints the same facts", async () => {
@@ -104,6 +120,18 @@ test("check --markdown always exits 0, whatever it found, and prints the short r
   assert.match(r.out, /^## agent-windows-doctor check: /);
   assert.match(r.out, /- ERROR `claude\.no-shell-tool`: /);
   assert.equal(r.err, "");
+  const many = Object.fromEntries(Array.from({ length: 16 }, (_, i) => [`CLAUDE_X${i}_DIR`, ["REG_SZ", `D:\\data\\${"x".repeat(280)}${i}`]]));
+  const sysMany = winMachine({ files: [`${HOME}\\.local\\bin\\claude.exe`], env: { Path: `${HOME}\\.local\\bin;C:\\Program Files\\Git\\cmd;C:\\Windows\\System32;C:\\Windows` }, registry: { "HKCU\\Environment": many } });
+  const r3 = await run(["check", "--markdown", "--max", "3"], { sys: sysMany });
+  assert.equal(r3.code, 0);
+  const lines3 = r3.out.trimEnd().split("\n");
+  assert.equal(lines3.filter((l) => l.startsWith("- WARNING")).length, 3);
+  assert.match(lines3.at(-1), /^- \.\.\. and 13 more \(run `agent-windows-doctor check`\)$/);
+  const r40 = await run(["check", "--markdown", "--max", "40"], { sys: sysMany });
+  assert.equal(r40.code, 0);
+  const lines40 = r40.out.trimEnd().split("\n");
+  assert.equal(lines40.filter((l) => l.startsWith("- WARNING")).length, 16);
+  assert.ok(!lines40.some((l) => l.includes("and") && l.includes("more")));
 });
 
 test("check on Linux and macOS says there is nothing to check and exits 0, with --live as well: there is nothing to prove", async () => {
