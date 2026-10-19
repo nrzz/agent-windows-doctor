@@ -8,7 +8,7 @@ import { fakeMachine } from "./machine.mjs";
 import { HOME, npmInstall, winMachine, withNpm } from "./win-machine.mjs";
 import { HELP, parseArgs } from "../src/cli.mjs";
 import { VERSION } from "../src/version.mjs";
-import { IDS, PAGES } from "../src/explain.mjs";
+import { IDS, PAGES, nearIds } from "../src/explain.mjs";
 
 const usage = (argv) => { try { parseArgs(argv); } catch (e) { return e.message; } return null; };
 const four = (o = {}) => winMachine(withNpm(o, ["claude", "codex", "gemini", "copilot"]));
@@ -43,7 +43,7 @@ test("parseArgs: every usage error says what is wrong", () => {
   assert.equal(usage(["check", "--markdown", "--live"]), "--markdown is the short report to paste and does not run --live");
   assert.equal(usage(["explain"]), "explain needs a finding id or --list (for example claude.git-bash-not-found)");
   assert.equal(usage(["explain", "a", "b"]), 'explain takes one finding id, not "a b"');
-  assert.equal(usage(["explain", "--list", "a"]), "explain takes --list or one finding id, not both");
+  assert.equal(usage(["explain", "--list", "a", "b"]), 'explain takes one part, not "a b"');
   assert.equal(usage(["agents", "extra"]), 'agents takes no name, not "extra"');
   assert.equal(usage(["agents", "--live"]), "agents does not take --live");
   assert.equal(usage(["explain", "--markdown", "x"]), "explain does not take --markdown");
@@ -201,6 +201,48 @@ test("explain: a page by id, the list, and what an id that is not one gets (exit
     PAGES.pop();
     IDS.pop();
   }
+});
+
+test("explain --list <part>: filters the list of findings in text and JSON, exit 1 when none match", async () => {
+  // Several ids containing part (case-insensitive and whitespace-trimmed)
+  const filtered = await run(["explain", "--list", " HOOK-BASH "]);
+  assert.equal(filtered.code, 0);
+  const lines = filtered.out.trimEnd().split("\n");
+  assert.equal(lines.length, 6);
+  const expectedIds = ["claude.hook-bash-syntax", "codex.hook-bash-syntax", "gemini.hook-bash-syntax", "copilot.hook-bash-only", "copilot.hook-bash-syntax", "cursor.hook-bash-syntax"];
+  const maxLen = Math.max(...expectedIds.map((id) => id.length));
+  for (let i = 0; i < lines.length; i++) {
+    assert.equal(lines[i].slice(0, maxLen), expectedIds[i].padEnd(maxLen));
+    assert.ok(lines[i].slice(maxLen).startsWith("   "));
+  }
+
+  // With --json: ok true, findings filtered with id, title, basis
+  const filteredJson = (await run(["explain", "--list", "hook-bash", "--json"])).json();
+  assert.equal(filteredJson.ok, true);
+  assert.deepEqual(filteredJson.findings.map((p) => p.id), expectedIds);
+  assert.ok(filteredJson.findings.every((p) => p.id && p.title && p.basis));
+
+  // Agent prefix with its dot: lists one agent's findings
+  const codexList = (await run(["explain", "--list", "codex.", "--json"])).json();
+  assert.equal(codexList.ok, true);
+  assert.ok(codexList.findings.length > 0);
+  assert.ok(codexList.findings.every((p) => p.id.startsWith("codex.")));
+
+  // Part in exactly one id
+  const one = (await run(["explain", "--list", "shell-path", "--json"])).json();
+  assert.equal(one.ok, true);
+  assert.deepEqual(one.findings.map((p) => p.id), ["codex.shell-path-ignored"]);
+
+  // Part that no id contains: exit 1, text and JSON
+  const none = await run(["explain", "--list", "nosuchthing"]);
+  assert.equal(none.code, 1);
+  assert.equal(none.out, "");
+  assert.equal(none.err, 'agent-windows-doctor: no finding id contains "nosuchthing".\n');
+  const noneJson = (await run(["explain", "--list", "nosuchthing", "--json"])).json();
+  assert.equal(noneJson.ok, false);
+  assert.equal(noneJson.refused, 'no finding id contains "nosuchthing"');
+  assert.deepEqual(noneJson.ids, IDS);
+  assert.deepEqual(noneJson.near, nearIds("nosuchthing"));
 });
 
 // ---- --live, with stand-ins for the runs ---------------------------------------------------------------------------------------------

@@ -4,6 +4,9 @@ All notable changes to agent-windows-doctor are written here. The format follows
 
 ## [Unreleased]
 
+- `explain --list <part>` filters the list of findings to every id containing the part, without regard to case and with surrounding whitespace ignored, padded to the longest id shown; `explain --list <agent>.` lists one agent's findings. With `--json`, `{ ok: true, findings: [ { id, title, basis } ] }`. When no id contains the part, exits 1 with a refusal and nearest suggestions (`no finding id contains "<part>"`).
+- Contributed by [@yoreva-01](https://github.com/yoreva-01) for the good first issue [#5](https://github.com/nrzz/agent-windows-doctor/issues/5).
+
 ## [1.2.0] - 2026-10-19
 
 - `explain` tells an ambiguous part from an unknown id: a part that several ids contain is refused with every id that contains it, in page order (`explain hook-bash` names the six and says "Give one of them"; `explain .` names all 77), in text and in JSON (`ids` holds those ids and `near` is empty); an unknown id keeps its message with the nearest ids. Both exit 1.

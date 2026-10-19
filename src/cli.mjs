@@ -28,7 +28,7 @@ Read (they change nothing):
            short report to paste into any agent (at most 12 findings); it always exits 0
   agents   [--agent ...]
            every program of each agent, alone: which one runs first
-  explain  [--list] <finding-id>
+  explain  [--list [<part>] | <finding-id>]
            what a finding means, what the agent does in that case (each line marked verified,
            documented or not verified), the fix, and the issue and forum threads
 
@@ -87,8 +87,7 @@ export function parseArgs(argv) {
   if (!spec) throw new UsageError(`unknown command "${o.command}"`);
   for (const key of o.given) if (key !== "help" && key !== "version" && !spec.options.includes(key)) throw new UsageError(`${o.command} does not take --${key}`);
   const rest = positional.slice(1);
-  if (o.command === "explain" && o.list && rest.length) throw new UsageError("explain takes --list or one finding id, not both");
-  if (rest.length > spec.positional) throw new UsageError(`${o.command} takes ${spec.positional === 0 ? "no name" : "one finding id"}, not "${rest.join(" ")}"`);
+  if (rest.length > spec.positional) throw new UsageError(`${o.command} takes ${spec.positional === 0 ? "no name" : o.command === "explain" && o.list ? "one part" : "one finding id"}, not "${rest.join(" ")}"`);
   if (o.command === "explain" && !o.list && rest.length === 0) throw new UsageError("explain needs a finding id or --list (for example claude.git-bash-not-found)");
   o.id = rest[0] || null;
   if (o.agent !== undefined) {
@@ -134,7 +133,19 @@ export async function main(argv, io = {}) {
     if (o.command === "explain") {
       if (o.list) {
         const pages = listPages();
-        emit(explainListJson(pages), explainListText(pages));
+        if (!o.id) {
+          emit(explainListJson(pages), explainListText(pages));
+          return 0;
+        }
+        const ids = idsContaining(o.id);
+        if (!ids.length) {
+          const refused = `no finding id contains "${o.id}"`;
+          if (o.json) stdout.write(`${JSON.stringify({ ok: false, refused, ids: IDS, near: nearIds(o.id) }, null, 2)}\n`);
+          else stderr.write(`agent-windows-doctor: ${refused}.\n`);
+          return 1;
+        }
+        const matches = pages.filter((page) => ids.includes(page.id));
+        emit(explainListJson(matches), explainListText(matches));
         return 0;
       }
       const page = pageFor(o.id);
