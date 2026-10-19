@@ -164,15 +164,25 @@ test("explain: a page by id, the list, and what an id that is not one gets (exit
   const part2 = await run(["explain", "sandbox"]);
   assert.equal(part2.code, 0);
   assert.match(part2.out, /^codex\.sandbox-none /);
-  // ambiguous part: hook-bash matches several ids, exits 1, prints candidates
+  // ambiguous part: hook-bash matches several ids, exits 1, lists all matching ids in page order
   const ambig = await run(["explain", "hook-bash"]);
   assert.equal(ambig.code, 1);
-  assert.match(ambig.err, /^agent-windows-doctor: no finding called "hook-bash"\. Did you mean claude\.hook-bash-syntax, /);
+  assert.equal(ambig.out, "");
+  assert.equal(ambig.err, 'agent-windows-doctor: "hook-bash" is a part of 6 finding ids: claude.hook-bash-syntax, codex.hook-bash-syntax, gemini.hook-bash-syntax, copilot.hook-bash-only, copilot.hook-bash-syntax, cursor.hook-bash-syntax. Give one of them.\n');
   const ambigJson = (await run(["explain", "hook-bash", "--json"])).json();
   assert.equal(ambigJson.ok, false);
-  assert.equal(ambigJson.refused, 'no finding called "hook-bash"');
-  assert.ok(ambigJson.near.includes("claude.hook-bash-syntax"));
-  assert.ok(ambigJson.near.includes("codex.hook-bash-syntax"));
+  assert.equal(ambigJson.refused, '"hook-bash" is a part of 6 finding ids');
+  assert.deepEqual(ambigJson.ids, ["claude.hook-bash-syntax", "codex.hook-bash-syntax", "gemini.hook-bash-syntax", "copilot.hook-bash-only", "copilot.hook-bash-syntax", "cursor.hook-bash-syntax"]);
+  assert.deepEqual(ambigJson.near, []);
+  // ambiguous part in more than five ids: "." matches every id
+  const dot = await run(["explain", "."]);
+  assert.equal(dot.code, 1);
+  assert.match(dot.err, /^agent-windows-doctor: "\." is a part of 77 finding ids: /);
+  const dotJson = (await run(["explain", ".", "--json"])).json();
+  assert.equal(dotJson.ok, false);
+  assert.equal(dotJson.refused, '"." is a part of 77 finding ids');
+  assert.deepEqual(dotJson.ids, IDS);
+  assert.deepEqual(dotJson.near, []);
   // part that matches nothing: exit 1, no near match
   const bad = await run(["explain", "nosuch"]);
   assert.equal(bad.code, 1);
