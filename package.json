@@ -1,6 +1,6 @@
 {
   "name": "agent-windows-doctor",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "What Claude Code, Codex CLI, Gemini CLI, GitHub Copilot CLI and Cursor each get on Windows and why: the shell they give the model and how they chose it, every agent program and which one runs first, what runs their hooks, Codex's sandbox, and the setup problems behind the common Windows issues. Proves it with the real binaries. Zero tokens.",
   "type": "module",
   "bin": {

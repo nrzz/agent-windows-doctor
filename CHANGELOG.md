@@ -4,8 +4,10 @@ All notable changes to agent-windows-doctor are written here. The format follows
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-10-28
+
 - `check --markdown --max <n>` sets how many errors and warnings the short report holds (default 12, minimum 1, whole numbers only). When there are more findings than the cap, the line `- ... and N more (run `agent-windows-doctor check`)` counts against the cap given. Using `--max` without `--markdown` or with a non-positive integer is a usage error (exit 2).
-- Contributed by [@yoreva-01](https://github.com/yoreva-01) for the good first issue [#7](https://github.com/nrzz/agent-windows-doctor/issues/7).
+- Contributed by [@yoreva-01](https://github.com/yoreva-01) in [#8](https://github.com/nrzz/agent-windows-doctor/pull/8), for the good first issue [#7](https://github.com/nrzz/agent-windows-doctor/issues/7).
 
 ## [1.3.0] - 2026-10-19
 
@@ -33,9 +35,10 @@ All notable changes to agent-windows-doctor are written here. The format follows
 - The Claude Code part and the machine checks are claude-windows-doctor's (its 27 findings, under the ids `claude.<name>`), copied into this repository: `src/sys.mjs`, `src/winpath.mjs`, `src/gitbash.mjs`, `src/facts.mjs`, `src/wsl.mjs`, `src/userenv.mjs`, `src/winenv.mjs` (its reading part), `src/claude-shell.mjs`, `src/claude-settings.mjs` and `src/jsonfile.mjs`, and the table of 129 cases in `test/shell-table.mjs`, which is held to the prediction on a pretend machine; the real-binary checks here put one row for each claim the pages restate. The TOML reader `src/toml.mjs` is codex-config-doctor's.
 - Zero tokens for the tool, no dependencies, no network code except the local connection of `check --live`, and nothing written except the throwaway folders of `check --live`.
 
+[1.4.0]: https://github.com/nrzz/agent-windows-doctor/releases/tag/v1.4.0
 [1.3.0]: https://github.com/nrzz/agent-windows-doctor/releases/tag/v1.3.0
 [1.2.0]: https://github.com/nrzz/agent-windows-doctor/releases/tag/v1.2.0
 [1.1.0]: https://github.com/nrzz/agent-windows-doctor/releases/tag/v1.1.0
 [1.0.0]: https://github.com/nrzz/agent-windows-doctor/releases/tag/v1.0.0
 
-[Unreleased]: https://github.com/nrzz/agent-windows-doctor/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/nrzz/agent-windows-doctor/compare/v1.4.0...HEAD
