@@ -4,6 +4,11 @@ All notable changes to agent-windows-doctor are written here. The format follows
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-10-28
+
+- `check --live`: the fake APIs read each request as UTF-8 across its chunks. The runs of Gemini CLI and GitHub Copilot CLI take the command line of the PowerShell they started from the tool result in a request, and a character outside ASCII in it (a folder with an accented name, say) that a chunk boundary split in two was read as replacement characters: the report showed that line wrong, and Gemini CLI's run, which compares the whole path with the prediction, said the binary had started another PowerShell. Claude Code's run reads only the tool names of the request and Codex CLI's reads what the binary printed, so neither changes. The tests' copy of the fake APIs had the same fix in 123e5da.
+- A test sends the fake Copilot API a request in two chunks cut inside an accented letter. The README's test count is the runner's: 279 automated tests (291 with the 12 helper files), 235 passing on Windows and 218 on Linux and macOS without a binary.
+
 ## [1.4.0] - 2026-10-28
 
 - `check --markdown --max <n>` sets how many errors and warnings the short report holds (default 12, minimum 1, whole numbers only). When there are more findings than the cap, the line `- ... and N more (run `agent-windows-doctor check`)` counts against the cap given. Using `--max` without `--markdown` or with a non-positive integer is a usage error (exit 2).
@@ -35,10 +40,11 @@ All notable changes to agent-windows-doctor are written here. The format follows
 - The Claude Code part and the machine checks are claude-windows-doctor's (its 27 findings, under the ids `claude.<name>`), copied into this repository: `src/sys.mjs`, `src/winpath.mjs`, `src/gitbash.mjs`, `src/facts.mjs`, `src/wsl.mjs`, `src/userenv.mjs`, `src/winenv.mjs` (its reading part), `src/claude-shell.mjs`, `src/claude-settings.mjs` and `src/jsonfile.mjs`, and the table of 129 cases in `test/shell-table.mjs`, which is held to the prediction on a pretend machine; the real-binary checks here put one row for each claim the pages restate. The TOML reader `src/toml.mjs` is codex-config-doctor's.
 - Zero tokens for the tool, no dependencies, no network code except the local connection of `check --live`, and nothing written except the throwaway folders of `check --live`.
 
+[1.4.1]: https://github.com/nrzz/agent-windows-doctor/releases/tag/v1.4.1
 [1.4.0]: https://github.com/nrzz/agent-windows-doctor/releases/tag/v1.4.0
 [1.3.0]: https://github.com/nrzz/agent-windows-doctor/releases/tag/v1.3.0
 [1.2.0]: https://github.com/nrzz/agent-windows-doctor/releases/tag/v1.2.0
 [1.1.0]: https://github.com/nrzz/agent-windows-doctor/releases/tag/v1.1.0
 [1.0.0]: https://github.com/nrzz/agent-windows-doctor/releases/tag/v1.0.0
 
-[Unreleased]: https://github.com/nrzz/agent-windows-doctor/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/nrzz/agent-windows-doctor/compare/v1.4.1...HEAD

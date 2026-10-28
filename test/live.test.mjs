@@ -5,6 +5,7 @@ import "./helpers.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { DEAD_PROXY, HOME_VARS, IS_WIN, NO_PROXY, tmpDir } from "./helpers.mjs";
@@ -137,6 +138,22 @@ test("the fake APIs record every request and answer as the agent's protocol want
   assert.match((await post(copilot, "/v1/models", {})).text, /gpt-4\.1/);
   await copilot.close();
   assert.equal(PROBE_COMMAND, "[Environment]::CommandLine");
+});
+
+test("the fake APIs read a request whose two chunks split a character (an accented folder in the command line the PowerShell printed) as the whole character", async () => {
+  const copilot = await startFakeCopilot();
+  try {
+    const line = "\"C:\\Users\\Jos\u00e9\\AppData\\Local\\Microsoft\\WindowsApps\\pwsh.exe\" -NoProfile";
+    const body = Buffer.from(JSON.stringify({ stream: false, messages: [{ role: "tool", content: line }] }));
+    const cut = body.indexOf(0xc3) + 1;
+    await new Promise((resolve, reject) => {
+      const req = http.request({ host: "127.0.0.1", port: copilot.port, path: "/v1/chat/completions", method: "POST", headers: { "content-type": "application/json" } }, (res) => { res.resume(); res.on("end", resolve); });
+      req.on("error", reject);
+      req.write(body.subarray(0, cut));
+      setTimeout(() => req.end(body.subarray(cut)), 50);
+    });
+    assert.equal(copilot.requests[0].body.messages[0].content, line);
+  } finally { await copilot.close(); }
 });
 
 test("programOf: the program of a command line, quoted with spaces or not", () => {

@@ -99,7 +99,7 @@ All five agents in one run is a long report; this is one agent, whole.
 
 ```text
 $ agent-windows-doctor check --agent codex --project C:\Users\me\shop
-agent-windows-doctor 1.4.0  what the coding agents get on this Windows machine
+agent-windows-doctor 1.4.1  what the coding agents get on this Windows machine
 project   C:\Users\me\shop
 system    Windows 11 Home Single Language (10.0.26300), x64
 agents    Codex CLI
@@ -256,7 +256,7 @@ The inventory alone, for "which `claude` runs first": the second section of `che
 
 ```text
 $ agent-windows-doctor agents
-agent-windows-doctor 1.4.0  every agent on this machine
+agent-windows-doctor 1.4.1  every agent on this machine
 
   Claude Code
     1  C:\Users\me\.local\bin\claude.exe
@@ -487,7 +487,7 @@ The Cursor CLI was not installed or run: it needs a login, and its installer (`i
 
 ### Tests
 
-- **278 automated tests** (`npm test`, Node's own runner, no dependencies). `node --test` also reports each of the 12 helper files under `test/` as a passing test; those are not counted here (the runner's total was 290). On Windows 234 pass and 44 are skipped when no real binary is named: the skipped ones are the real-binary checks described above, which run only when `E2E_CLAUDE`, `E2E_CODEX`, `E2E_GEMINI` or `E2E_COPILOT` names a binary. On Linux and macOS 217 pass and 61 are skipped, because the tests that read the real Windows are skipped as well; everything else there runs against pretend Windows machines. The test that states these numbers fails if the README's are not the runner's, on each system. The test that states this number runs the suite a second time to count it: one run of the suite takes 35 seconds on the machine this was written on, and `npm test`, with the count, 59. The tests cover:
+- **279 automated tests** (`npm test`, Node's own runner, no dependencies). `node --test` also reports each of the 12 helper files under `test/` as a passing test; those are not counted here (the runner's total was 291). On Windows 235 pass and 44 are skipped when no real binary is named: the skipped ones are the real-binary checks described above, which run only when `E2E_CLAUDE`, `E2E_CODEX`, `E2E_GEMINI` or `E2E_COPILOT` names a binary. On Linux and macOS 218 pass and 61 are skipped, because the tests that read the real Windows are skipped as well; everything else there runs against pretend Windows machines. The test that states these numbers fails if the README's are not the runner's, on each system. The test that states this number runs the suite a second time to count it: one run of the suite takes 35 seconds on the machine this was written on, and `npm test`, with the count, 59. The tests cover:
   - Claude Code's shell: the 129 cases of the table against the prediction on a pretend machine, the settings files, Git Bash, the user environment, WSL (`claude-shell.test.mjs`, `claude-settings.test.mjs`, `gitbash.test.mjs`, `userenv.test.mjs`, `wsl.test.mjs`, `facts.test.mjs`).
   - The inventory of binaries, launchers and shims, and versions read without running anything (`inventory.test.mjs`), the machine and the PowerShell editions (`machine.test.mjs`), Codex on Windows (`codex.test.mjs`), the Cursor launcher, node-pty and the Node each package asks for (`agentfacts.test.mjs`), and the hooks (`hooks.test.mjs`).
   - The findings: each of the 77 ids is produced by some pretend machine, with the severity of its table and the basis of its page (`findings.test.mjs`); the pages of `explain` (`explain.test.mjs`); the text, markdown and JSON reports, the cap of 12 findings and 500 characters, and that a secret in the environment is in none of them (`report.test.mjs`); the options, the exit codes and every usage error (`cli.test.mjs`).
