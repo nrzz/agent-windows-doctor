@@ -163,7 +163,7 @@ function knownPlaces(sys, agent, ctx) {
     const pk = W.join(local, "Microsoft", "WinGet", "Packages");
     for (const n of sys.listDir(pk) || []) if (/^GitHub\.Copilot/i.test(n)) out.push({ path: W.join(pk, n, "copilot.exe") });
     const cache = W.join(local, "copilot", "pkg");
-    for (const plat of sys.listDir(cache) || []) for (const v of sys.listDir(W.join(cache, plat)) || []) out.push({ path: W.join(cache, plat, v), kind: "cache", version: versionFromFolder(v) });
+    for (const plat of sys.listDir(cache) || []) for (const v of (sys.listDir(W.join(cache, plat)) || []).filter((n) => versionFromFolder(n))) out.push({ path: W.join(cache, plat, v), kind: "cache", version: versionFromFolder(v) });
   }
   if (agent === "cursor") {
     if (local) for (const c of cmds) out.push({ path: W.join(local, "cursor-agent", `${c}.cmd`) });

@@ -14,7 +14,7 @@ import { plainWindowsPath } from "./sandbox.mjs";
 import { makeSys } from "../src/sys.mjs";
 import { collectMachine } from "../src/machine.mjs";
 import { shellFor } from "../src/shells.mjs";
-import { findAgents } from "../src/inventory.mjs";
+import { findAgents, compareVersions } from "../src/inventory.mjs";
 import { nodeWants, ptyOf } from "../src/agentfacts.mjs";
 import * as W from "../src/winpath.mjs";
 
@@ -102,13 +102,14 @@ test("run_shell_command starts powershell.exe -NoProfile -NonInteractive -Comman
   t.diagnostic(`Gemini CLI ${NUMBER}, no pwsh on PATH: ${line}`);
 });
 
-test("a pwsh.exe on PATH is started instead, with -NoProfile -Command; __PSLockdownPolicy=4 in the environment of the process does not change the language mode", { skip: SKIP, timeout: 900000 }, async (t) => {
+test("a pwsh.exe on PATH is started instead, with -NoProfile -NonInteractive -Command (-NoProfile -Command up to 0.68.0); __PSLockdownPolicy=4 in the environment of the process does not change the language mode", { skip: SKIP, timeout: 900000 }, async (t) => {
   const run = await runs.withPwsh;
   assert.equal(run.r.code, 0, `${run.r.err.slice(0, 400)}`);
   const [line, , , mode, exe] = printed(run.results);
-  assert.match(line, /pwsh\.exe"? -NoProfile -Command/i, run.results);
+  const noInteractive = compareVersions(NUMBER, "0.69.0") < 0;
+  assert.match(line, noInteractive ? /pwsh\.exe"? -NoProfile -Command/i : /pwsh\.exe"? -NoProfile -NonInteractive -Command/i, run.results);
   assert.ok(W.same(exe, runs.ps7.file), `the process is ${exe}, the stand-in is ${runs.ps7.file}`);
-  assert.doesNotMatch(line, /-NonInteractive/, "the pwsh.exe form has no -NonInteractive");
+  if (noInteractive) assert.doesNotMatch(line, /-NonInteractive/, "up to 0.68.0 the pwsh.exe form has no -NonInteractive");
   assert.equal(mode, "FullLanguage", "the switch is read from the machine, not from the environment of a process");
   assert.ok(run.prediction.shell && W.same(run.prediction.shell.path, runs.ps7.file), `the prediction says ${run.prediction.shell && run.prediction.shell.path}`);
   t.diagnostic(`Gemini CLI ${NUMBER}, pwsh.exe on PATH: ${line}; language mode with __PSLockdownPolicy=4: ${mode}`);

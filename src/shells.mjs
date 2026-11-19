@@ -53,9 +53,10 @@ export function shellFor(agent, { machine, cursor } = {}) {
     return {
       agent, tool: "run_shell_command", state: path ? "ok" : "missing",
       shell: path ? { label: edition(path), path, core: Boolean(pwsh) } : null,
-      args: pwsh ? "-NoProfile -Command" : "-NoProfile -NonInteractive -Command",
+      args: "-NoProfile -NonInteractive -Command",
       how: [
         pwsh ? "pwsh.exe, found on PATH by its bare name" : "no pwsh.exe on PATH, so powershell.exe, found on PATH by its bare name",
+        "Gemini CLI 0.69.0 and later start either with -NoProfile -NonInteractive -Command; 0.68.0 and earlier started pwsh.exe with -NoProfile -Command, without -NonInteractive (powershell.exe had it in both)",
         "a pwsh.exe that is only in %ProgramFiles%\\PowerShell\\7, off PATH, is not used",
         path ? "the PowerShell folder of Windows is on PATH" : "with neither pwsh.exe nor powershell.exe on PATH the tool answers spawn powershell.exe ENOENT",
       ],

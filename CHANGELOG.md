@@ -4,6 +4,12 @@ All notable changes to agent-windows-doctor are written here. The format follows
 
 ## [Unreleased]
 
+## [1.4.2] - 2026-11-19
+
+- The inventory takes only the folders of `%LOCALAPPDATA%\copilot\pkg\<platform>` that are named for a version as the cache of Copilot CLI. From 1.0.106 that folder also holds `.session-operation-locks` (a folder with a `<version>.lock` file, left after a run); the inventory listed it as a cache with no version. Bisected with side-by-side installs: 1.0.105 has only the version folder; 1.0.106, 1.0.107 and 1.0.114 have both.
+- The shell of Gemini CLI: from 0.69.0 a `pwsh.exe` on PATH is started as `pwsh.exe -NoProfile -NonInteractive -Command ...`; 0.68.0 started it as `pwsh.exe -NoProfile -Command ...`, without `-NonInteractive` (`powershell.exe` had `-NonInteractive` in both, and a hook runs as before). The prediction (`check`, `check --json`), the `gemini.powershell-not-on-path` page and the README say so; the e2e test accepts either form by the version it runs against. Bisected by running the e2e against 0.68.0 and 0.69.0 side by side.
+- One test added (the cache folder beside `.session-operation-locks`): 280 automated tests (292 with the 12 helper files), 236 passing on Windows and 219 on Linux and macOS without a binary.
+
 ## [1.4.1] - 2026-10-28
 
 - `check --live`: the fake APIs read each request as UTF-8 across its chunks. The runs of Gemini CLI and GitHub Copilot CLI take the command line of the PowerShell they started from the tool result in a request, and a character outside ASCII in it (a folder with an accented name, say) that a chunk boundary split in two was read as replacement characters: the report showed that line wrong, and Gemini CLI's run, which compares the whole path with the prediction, said the binary had started another PowerShell. Claude Code's run reads only the tool names of the request and Codex CLI's reads what the binary printed, so neither changes. The tests' copy of the fake APIs had the same fix in 123e5da.
@@ -40,6 +46,7 @@ All notable changes to agent-windows-doctor are written here. The format follows
 - The Claude Code part and the machine checks are claude-windows-doctor's (its 27 findings, under the ids `claude.<name>`), copied into this repository: `src/sys.mjs`, `src/winpath.mjs`, `src/gitbash.mjs`, `src/facts.mjs`, `src/wsl.mjs`, `src/userenv.mjs`, `src/winenv.mjs` (its reading part), `src/claude-shell.mjs`, `src/claude-settings.mjs` and `src/jsonfile.mjs`, and the table of 129 cases in `test/shell-table.mjs`, which is held to the prediction on a pretend machine; the real-binary checks here put one row for each claim the pages restate. The TOML reader `src/toml.mjs` is codex-config-doctor's.
 - Zero tokens for the tool, no dependencies, no network code except the local connection of `check --live`, and nothing written except the throwaway folders of `check --live`.
 
+[1.4.2]: https://github.com/nrzz/agent-windows-doctor/releases/tag/v1.4.2
 [1.4.1]: https://github.com/nrzz/agent-windows-doctor/releases/tag/v1.4.1
 [1.4.0]: https://github.com/nrzz/agent-windows-doctor/releases/tag/v1.4.0
 [1.3.0]: https://github.com/nrzz/agent-windows-doctor/releases/tag/v1.3.0
@@ -47,4 +54,4 @@ All notable changes to agent-windows-doctor are written here. The format follows
 [1.1.0]: https://github.com/nrzz/agent-windows-doctor/releases/tag/v1.1.0
 [1.0.0]: https://github.com/nrzz/agent-windows-doctor/releases/tag/v1.0.0
 
-[Unreleased]: https://github.com/nrzz/agent-windows-doctor/compare/v1.4.1...HEAD
+[Unreleased]: https://github.com/nrzz/agent-windows-doctor/compare/v1.4.2...HEAD

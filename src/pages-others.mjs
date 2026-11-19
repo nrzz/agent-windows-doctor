@@ -235,7 +235,7 @@ export const OTHER_PAGES = [
     id: "gemini.powershell-not-on-path", basis: "verified", title: "Gemini CLI finds no PowerShell on PATH",
     means: "Gemini CLI starts its shell tool as pwsh.exe when PATH has one, and as powershell.exe otherwise, both by their bare names. With neither on PATH it cannot start it.",
     does: [
-      "V: with pwsh.exe first on PATH the shell command line was <that file> -NoProfile -Command ...; with only powershell.exe it was C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -NoProfile -NonInteractive -Command ... (Gemini CLI 0.64.0, a copy of powershell.exe named pwsh.exe stood in for PowerShell 7).",
+      "V: with pwsh.exe first on PATH the shell command line was <that file> -NoProfile -NonInteractive -Command ... (Gemini CLI 0.69.0; up to 0.68.0 it was <that file> -NoProfile -Command ..., with no -NonInteractive); with only powershell.exe it was C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -NoProfile -NonInteractive -Command ... (0.64.0, 0.68.0 and 0.69.0; a copy of powershell.exe named pwsh.exe stood in for PowerShell 7).",
       "V: a pwsh.exe that was only in %ProgramFiles%\\PowerShell\\7 (off PATH) was not used.",
       'V: with the PowerShell folder off PATH, run_shell_command answered {"error":"spawn powershell.exe ENOENT"}; the model got that, the answer was printed, and then, with Node 24.19.0, the process ended with a libuv assertion (`Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), file src\\win\\async.c, line 94`) and exit code 3221226505 (with a PowerShell found it ended with 0; with Node 22.23.3 on the windows-latest runner it ended with 0 in both cases).',
     ],

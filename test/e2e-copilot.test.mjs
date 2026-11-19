@@ -112,6 +112,7 @@ test("the package that copilot.exe unpacks for itself is under LOCALAPPDATA\\cop
   const dir = path.join(run.sb.localAppData, "copilot", "pkg", "win32-x64");
   const versions = fs.existsSync(dir) ? fs.readdirSync(dir) : [];
   t.diagnostic(`${dir}: ${versions.join(", ") || "(none)"} on Copilot CLI ${NUMBER}`);
+  for (const v of versions) { const p = path.join(dir, v); const st = fs.statSync(p); t.diagnostic(`  ${v}: ${st.isDirectory() ? "folder holding " + fs.readdirSync(p).slice(0, 8).join(", ") : "file of " + st.size + " bytes"}`); }
   assert.ok(versions.includes(INFO.number), `${INFO.number} is in ${versions.join(", ")}`);
   // the inventory finds it as the cache of that version
   const sys = makeSys({ env: { Path: plainWindowsPath().join(";"), LOCALAPPDATA: run.sb.localAppData, USERPROFILE: run.sb.home, APPDATA: run.sb.appData }, cwd: run.sb.work, home: run.sb.home });

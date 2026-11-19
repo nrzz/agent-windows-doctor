@@ -133,7 +133,7 @@ test("shellFor codex: pwsh on PATH, then the PowerShell 7 of Program Files, then
 test("shellFor gemini and copilot: pwsh.exe or powershell.exe through PATH, and nothing when neither is on PATH", () => {
   const five = collectMachine(winMachine(), {});
   assert.equal(shellFor("gemini", { machine: five }).args, "-NoProfile -NonInteractive -Command");
-  assert.equal(shellFor("gemini", { machine: collectMachine(withPwsh(), {}) }).args, "-NoProfile -Command");
+  assert.equal(shellFor("gemini", { machine: collectMachine(withPwsh(), {}) }).args, "-NoProfile -NonInteractive -Command", "Gemini CLI 0.69.0; 0.68.0 left -NonInteractive out of the pwsh.exe form");
   assert.equal(shellFor("copilot", { machine: five }).args, "-NoProfile -NoLogo -NonInteractive -Command");
   assert.match(shellFor("copilot", { machine: five }).how[0], /Windows PowerShell 5\.1 ran the tool, although the README of Copilot CLI asks for PowerShell 6 or newer/);
   const noPath = collectMachine(winMachine({ env: { Path: "C:\\Windows\\System32;C:\\Windows" } }), {});

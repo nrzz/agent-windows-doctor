@@ -127,6 +127,14 @@ test("Copilot's cache is a folder the program unpacked for itself: it has a vers
   assert.match(e.skipped, /not a command/);
 });
 
+test("Copilot's cache: .session-operation-locks beside the version folder (Copilot CLI 1.0.106 and later) is not a package", () => {
+  const local = `${HOME}\\AppData\\Local`;
+  const base = `${local}\\copilot\\pkg\\win32-x64`;
+  const sys = winMachine({ dirs: [`${base}\\.session-operation-locks`, `${base}\\1.0.114`] });
+  const caches = entriesOf(sys, "copilot").entries.filter((e) => e.kind === "cache");
+  assert.deepEqual(caches.map((e) => [e.path, e.version]), [[`${base}\\1.0.114`, "1.0.114"]]);
+});
+
 test("originOf: where a file of each agent came from, by its path", () => {
   assert.equal(originOf("claude", "C:\\Users\\me\\.local\\bin\\claude.exe"), "native");
   assert.equal(originOf("claude", "C:\\Users\\me\\AppData\\Roaming\\Claude\\claude-code\\2.1.299\\f0584be0fbaf\\claude.exe"), "desktop-bundle");
